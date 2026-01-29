@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="bn">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PAY SERVICE - Deposit</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background: #f5f7f8;
+        font-family: "Noto Sans Bengali", sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+      .page {
+        max-width: 600px;
+        width: 100%;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+      .header {
+        background: #006341;
+        color: #fff;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .header-left {
+        font-size: 18px;
+        font-weight: 600;
+      }
+      .header-left span {
+        font-weight: 700;
+      }
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        letter-spacing: 0.5px;
+      }
+      .header-right .pay {
+        background: #fff;
+        color: #006341;
+        font-weight: bold;
+        padding: 4px 6px;
+        border-radius: 3px;
+        font-size: 13px;
+      }
+      .lang-switch {
+        display: flex;
+        gap: 6px;
+        background: #fff;
+        color: #333;
+        border-radius: 4px;
+        padding: 3px 6px;
+        font-size: 13px;
+      }
+      .content {
+        padding: 25px;
+      }
+      .warning {
+        color: #d60000;
+        font-weight: 600;
+        margin-bottom: 20px;
+        font-size: 15px;
+      }
+      .wallet-section {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        margin-bottom: 25px;
+      }
+      .wallet-box {
+        flex: 1;
+        min-width: 260px;
+        margin-bottom: 20px;
+      }
+      .wallet-box label {
+        font-weight: 600;
+        font-size: 15px;
+      }
+      .wallet-input {
+        display: flex;
+        align-items: center;
+        background: #f9f9f9;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        padding: 10px;
+        margin-top: 6px;
+        font-size: 15px;
+        color: #333;
+      }
+      .wallet-input span {
+        flex-grow: 1;
+      }
+      .copy-btn {
+        background: #e5f4ed;
+        border-radius: 5px;
+        padding: 6px;
+        cursor: pointer;
+        font-size: 18px;
+        color: #00764f;
+      }
+      .provider-box {
+        flex: 1;
+        min-width: 260px;
+      }
+      .provider-box label {
+        font-weight: 600;
+        font-size: 15px;
+        display: block;
+        margin-bottom: 8px;
+      }
+      .provider {
+        display: flex;
+        align-items: center;
+        background: #d700aa;
+        color: #fff;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        gap: 10px;
+      }
+      .provider img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+      }
+      .trxid-section {
+        margin-bottom: 25px;
+      }
+      .trxid-section label {
+        font-weight: 600;
+        color: #d60000;
+        display: block;
+        margin-bottom: 6px;
+        font-size: 15px;
+      }
+      .trxid-input {
+        width: 100%;
+        border: 1px solid #d60000;
+        border-radius: 6px;
+        padding: 10px;
+        font-size: 15px;
+      }
+      .trxid-input::placeholder {
+        color: #999;
+      }
+      .submit-btn {
+        display: block;
+        width: 140px;
+        text-align: center;
+        background: #fff;
+        border: 1.5px solid #000;
+        color: #000;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 16px;
+        padding: 8px 0;
+        margin: 15px auto 20px;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .submit-btn:hover {
+        background: #000;
+        color: #fff;
+      }
+      .submit-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      .note {
+        background: #fff8f8;
+        border-left: 4px solid #d60000;
+        padding: 10px 12px;
+        font-size: 14px;
+        color: #d60000;
+        line-height: 1.6;
+      }
+      .note span {
+        font-weight: 700;
+      }
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px;
+        border-radius: 6px;
+        color: #fff;
+        font-size: 14px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+      .notification.success {
+        background: #006341;
+      }
+      .notification.error {
+        background: #d60000;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="notification" class="notification" style="display: none"></div>
+    <div class="page">
+      <div class="header">
+        <div class="header-left">
+          <span id="amount"></span><br />
+          <small id="amount-warning"></small>
+        </div>
+        <div class="header-right">
+          <div class="pay">PAY</div>
+          SERVICE
+          <div class="lang-switch" id="lang-switch"></div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="warning" id="warning"></div>
+        <div class="wallet-section">
+          <div class="wallet-box">
+            <label id="wallet-label"></label>
+            <div id="wallet-note" style="font-size: 13px; color: #555"></div>
+            <div class="wallet-input">
+              <span id="wallet-number"></span>
+              <div class="copy-btn" onclick="copyWalletNumber()">📋</div>
+            </div>
+          </div>
+          <div class="provider-box">
+            <label id="provider-label"></label>
+            <div class="provider">
+              <img id="provider-image" alt="provider" />
+              <span id="provider-name"></span>
+            </div>
+          </div>
+        </div>
+        <div class="trxid-section" id="user-inputs"></div>
+        <button
+          class="submit-btn"
+          id="submit-btn"
+          onclick="handleSubmit()"
+          disabled
+        >
+          নিশ্চিত
+        </button>
+        <div class="note" id="note"></div>
+      </div>
+    </div>
+
+    <script>
+      // Base URLs (replace with your actual base URLs)
+      const baseURL = "YOUR_BASE_URL"; // e.g., "https://api.yourdomain.com"
+      const baseURL_For_IMG_UPLOAD = "YOUR_IMAGE_BASE_URL"; // e.g., "https://images.yourdomain.com/"
+
+      // Get URL parameters
+      const params = new URLSearchParams(window.location.search);
+      const amount = params.get("amount") || "0";
+      const language = params.get("language") || "bn";
+      const agentWalletNumber = params.get("agentWalletNumber") || "N/A";
+      const methodName = params.get("methodName") || "";
+      const methodNameBD = params.get("methodNameBD") || "";
+      const methodImage = params.get("methodImage") || "";
+      const userInputs = JSON.parse(params.get("userInputs") || "[]");
+      const selectedTab = params.get("selectedTab") || "";
+      const selectedProcessTab = params.get("selectedProcessTab") || "";
+      const userId = params.get("userId") || "";
+      const token = params.get("token") || "";
+
+      // State
+      let inputValues = {};
+      let isCreating = false;
+      let transactionId = null;
+      let pollingInterval = null;
+
+      // Initialize input values
+      userInputs.forEach((input) => {
+        inputValues[input.name] = "";
+      });
+
+      // Populate DOM
+      document.getElementById("amount").textContent = `BDT ${amount}`;
+      document.getElementById("amount-warning").textContent =
+        language === "bn"
+          ? "কম বা বেশি ক্যাশআউট করবেন না"
+          : "Do not cash out less or more";
+      document.getElementById("lang-switch").textContent =
+        language === "bn" ? "EN | বাংলা" : "EN | Bangla";
+      document.getElementById("warning").textContent =
+        language === "bn"
+          ? `আপনি যদি টাকার পরিমাণ পরিবর্তন করেন (BDT ${amount})। আপনি ক্রেডিট পেতে সক্ষম হবেন না।`
+          : `If you change the amount (BDT ${amount}), you will not be able to receive credit.`;
+      document.getElementById("wallet-label").textContent =
+        language === "bn" ? "ওয়ালেট নম্বর*" : "Wallet No*";
+      document.getElementById("wallet-note").textContent =
+        language === "bn"
+          ? "এই নাম্বারে শুধুমাত্র ক্যাশআউট গ্রহণ করা হয়"
+          : "Only cashouts are accepted to this number";
+      document.getElementById("wallet-number").textContent = agentWalletNumber;
+      document.getElementById("provider-label").textContent =
+        language === "bn" ? "ওয়ালেট প্রোভাইডার" : "Wallet Provider";
+      document.getElementById(
+        "provider-image"
+      ).src = `${baseURL_For_IMG_UPLOAD}s/${methodImage}`;
+      document.getElementById("provider-image").alt = methodName;
+      document.getElementById("provider-name").textContent =
+        language === "bn" ? methodNameBD : methodName;
+      document.getElementById("note").innerHTML =
+        language === "bn"
+          ? `<span>সতর্কতা:</span> আপনার ট্রান্সফারটি সঠিকভাবে পূরণ করতে হবে, অন্যথায় অর্থ হারিয়ে যাবে! <br> অনুগ্রহ করে কেবল নিচে দেয়া নির্দিষ্ট নাম্বারে আপনার ${methodNameBD} ডিপোজিট ক্যাশআউট করুন। এই নাম্বারে অন্য কোনো ওয়ালেট থেকে ক্যাশ পাঠাবেন না।`
+          : `<span>Warning:</span> Your transfer must be filled correctly, otherwise the funds will be lost! <br> Please cash out your ${methodName} deposit only to the specified number below. Do not send cash from any other wallet to this number.`;
+
+      // Render user inputs
+      const userInputsContainer = document.getElementById("user-inputs");
+      userInputs.forEach((input) => {
+        const div = document.createElement("div");
+        div.innerHTML = `
+        <label class="block font-semibold text-[#d60000] mb-[6px] text-[15px]">
+          ${language === "bn" ? input.labelBD : input.label}
+          ${
+            input.isRequired === "true"
+              ? `<span> (${language === "bn" ? "প্রয়োজন" : "Required"})</span>`
+              : ""
+          }
+        </label>
+        <input
+          type="${input.type}"
+          name="${input.name}"
+          class="trxid-input"
+          placeholder="${
+            language === "bn"
+              ? input.fieldInstructionBD || "TrxID অবশ্যই পূরণ করতে হবে!"
+              : input.fieldInstruction || "TrxID must be filled!"
+          }"
+          ${input.isRequired === "true" ? "required" : ""}
+        >
+      `;
+        userInputsContainer.appendChild(div);
+      });
+
+      // Enable submit button after inputs are rendered
+      document.getElementById("submit-btn").disabled = false;
+
+      // Handle input changes
+      function handleInputChange(event) {
+        const { name, value } = event.target;
+        inputValues[name] = value;
+      }
+
+      // Add event listeners to inputs
+      document.querySelectorAll(".trxid-input").forEach((input) => {
+        input.addEventListener("input", handleInputChange);
+      });
+
+      // Copy wallet number
+      function copyWalletNumber() {
+        navigator.clipboard.writeText(agentWalletNumber).then(() => {
+          showNotification(
+            language === "bn" ? "নম্বর কপি করা হয়েছে" : "Number copied",
+            "success"
+          );
+        });
+      }
+
+      // Show notification
+      function showNotification(message, type) {
+        const notification = document.getElementById("notification");
+        notification.textContent = message;
+        notification.className = `notification ${type}`;
+        notification.style.display = "block";
+        setTimeout(() => {
+          notification.style.display = "none";
+        }, 3000);
+      }
+
+      // Handle submit
+      async function handleSubmit() {
+        if (!userId || !token) {
+          showNotification(
+            language === "bn" ? "অনুগ্রহ করে লগইন করুন" : "Please log in",
+            "error"
+          );
+          return;
+        }
+
+        for (const input of userInputs) {
+          if (input.isRequired === "true" && !inputValues[input.name]) {
+            showNotification(
+              language === "bn"
+                ? `${input.labelBD} প্রয়োজন`
+                : `${input.label} is required`,
+              "error"
+            );
+            return;
+          }
+        }
+
+        document.getElementById("submit-btn").disabled = true;
+        isCreating = true;
+
+        const formattedUserInputs = Object.entries(inputValues).map(
+          ([name, value]) => {
+            const config = userInputs.find((input) => input.name === name);
+            return {
+              _id: config._id,
+              name,
+              value: value.toString(),
+              label: config.label,
+              labelBD: config.labelBD,
+              type: config.type,
+            };
+          }
+        );
+
+        const payload = {
+          userId,
+          paymentMethodId: selectedTab,
+          channel: selectedProcessTab,
+          amount: Number(amount),
+          promotionId: null,
+          userInputs: formattedUserInputs,
+        };
+
+        try {
+          const response = await fetch(`${baseURL}/payment-transactions`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+
+          const result = await response.json();
+          if (!response.ok) {
+            throw new Error(result.message || "Failed to create transaction");
+          }
+
+          await fetch(`${baseURL}/user-payment-transactions/${userId}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const trxIdInput = formattedUserInputs.find((input) =>
+            input.name.toLowerCase().includes("trxid")
+          );
+          const trxId = trxIdInput ? trxIdInput.value : null;
+
+          if (trxId) {
+            const autoPaymentPayload = {
+              transactionId: result._id,
+              amount: Number(amount),
+              trxId: trxId,
+            };
+
+            const autoPaymentResponse = await fetch(`${baseURL}/auto-payment`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(autoPaymentPayload),
+            });
+
+            const autoPaymentData = await autoPaymentResponse.json();
+            if (!autoPaymentResponse.ok) {
+              throw new Error(
+                autoPaymentData.message || "Failed to save auto-payment data"
+              );
+            }
+          } else {
+            console.warn("No TRXID found in user inputs");
+          }
+
+          showNotification(
+            language === "bn"
+              ? "ডিপোজিট জমা দেওয়া হয়েছে"
+              : "Deposit submitted successfully",
+            "success"
+          );
+
+          transactionId = result._id;
+          startPolling();
+        } catch (error) {
+          showNotification(
+            language === "bn"
+              ? `ত্রুটি: ${error.message}`
+              : `Error: ${error.message}`,
+            "error"
+          );
+          document.getElementById("submit-btn").disabled = false;
+          isCreating = false;
+        }
+      }
+
+      // Start polling for transaction status
+      function startPolling() {
+        if (!transactionId) return;
+
+        pollingInterval = setInterval(async () => {
+          try {
+            const response = await fetch(
+              `${baseURL}/check-auto-payment/${transactionId}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            const data = await response.json();
+            if (data.success && data.data.status === "completed") {
+              showNotification(
+                language === "bn"
+                  ? "ট্রানজ্যাকশন সম্পন্ন হয়েছে!"
+                  : "Transaction completed!",
+                "success"
+              );
+
+              await fetch(`${baseURL}/user/balance/${userId}`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+
+              await fetch(`${baseURL}/user-payment-transactions/${userId}`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+
+              clearInterval(pollingInterval);
+              pollingInterval = null;
+              transactionId = null;
+              setTimeout(() => window.close(), 2000);
+            } else if (
+              data.data.status === "pending" &&
+              new Date(data.data.transaction.createdAt) <
+                new Date(Date.now() - 2 * 60 * 1000)
+            ) {
+              showNotification(
+                language === "bn"
+                  ? "টাইমআউট: ট্রানজ্যাকশন পেন্ডিং"
+                  : "Timeout: Transaction pending",
+                "error"
+              );
+              clearInterval(pollingInterval);
+              pollingInterval = null;
+              transactionId = null;
+              document.getElementById("submit-btn").disabled = false;
+              isCreating = false;
+            }
+          } catch (error) {
+            console.error("Polling error:", error);
+          }
+        }, 5000);
+
+        setTimeout(() => {
+          if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+            if (transactionId) {
+              showNotification(
+                language === "bn"
+                  ? "টাইমআউট: ট্রানজ্যাকশন পেন্ডিং"
+                  : "Timeout: Transaction pending",
+                "error"
+              );
+              transactionId = null;
+              document.getElementById("submit-btn").disabled = false;
+              isCreating = false;
+            }
+          }
+        }, 2 * 60 * 1000);
+      }
+    </script>
+  </body>
+</html>
