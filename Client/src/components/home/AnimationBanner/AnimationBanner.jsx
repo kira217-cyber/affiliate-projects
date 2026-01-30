@@ -290,6 +290,21 @@ export default function AnimationBanner({ data }) {
                 className="relative group overflow-hidden rounded-lg shadow-md w-[130px] h-[176px] flex-shrink-0 mx-1"
               >
                 {(() => {
+                  // প্রথমে কাস্টম ইমেজ চেক (GameControl থেকে সেভ করা)
+                  if (game?.image && game.image !== "") {
+                    return (
+                      <img
+                        src={`${import.meta.env.VITE_BACKEND_API}uploads/${game.image}`}
+                        alt={game?.apiData?.name || game?.name || "game"}
+                        className="w-full h-full object-cover rounded-lg transition-transform duration-500 group-hover:scale-110 group-hover:blur-[2px]"
+                        onError={(e) => {
+                          e.target.src = "/placeholder-game.png";
+                        }}
+                      />
+                    );
+                  }
+
+                  // Tk999 প্রজেক্ট ইমেজ ফলব্যাক
                   const docs =
                     game?.apiData?.projectImageDocs ||
                     game?.projectImageDocs ||
@@ -297,17 +312,21 @@ export default function AnimationBanner({ data }) {
                   const match = docs.find(
                     (d) => d?.projectName?.title === "Tk999" && d?.image,
                   );
-                  const imgPath =
-                    match?.image || game?.image || game?.apiData?.image || "";
+                  const imgPath = match?.image || game?.apiData?.image || "";
                   const src = imgPath ? `${IMAGE_BASE}/${imgPath}` : "";
+
                   return (
                     <img
                       src={src}
                       alt={game?.apiData?.name || game?.name || "game"}
                       className="w-full h-full object-cover rounded-lg transition-transform duration-500 group-hover:scale-110 group-hover:blur-[2px]"
+                      onError={(e) => {
+                        e.target.src = "/placeholder-game.png";
+                      }}
                     />
                   );
                 })()}
+
                 {game.showHeart && (
                   <Link to={game.heartLink || "#"}>
                     <div className="absolute top-1 right-1 bg-[#ffffff45] bg-opacity-80 rounded-full p-0.5">

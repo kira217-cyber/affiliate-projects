@@ -30,6 +30,7 @@ import withdrawTransactionRoutes from "./routes/withdrawTransactionRoutes.js";
 import depositPaymentMethodRoutes from "./routes/depositPaymentMethodRoutes.js";
 import depositPaymentTransactionRoutes from "./routes/depositPaymentTransactionRoutes.js";
 import depositBonusRoutes from "./routes/depositBonusRoutes.js";
+import refundRoutes from "./routes/refundRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -66,6 +67,7 @@ app.use("/api/promotions", promotionRoutes);
 app.use("/api/social-links", socialLinksRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/callback-data-game", callBackRoutes); // এই লাইনটা থাকলেই হবে
+app.use("/api/refund-balance", refundRoutes); // এই লাইনটা থাকলেই হবে
 app.use("/api/balance-transfer", balanceTransferRoutes);
 app.use("/api/admin-withdraw", adminWithdrawRoutes);
 app.use("/api/withdraw-payment-methods", withdrawPaymentMethodRoutes);

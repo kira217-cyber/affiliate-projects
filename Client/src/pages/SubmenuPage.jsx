@@ -157,7 +157,7 @@ const SubmenuPage = () => {
         id: option?._id || "",
         label: option?.title || "Unknown",
         icon: option?.image ? (
-          `${baseURL_For_IMG_UPLOAD}s/${option.image}`
+          `${import.meta.env.VITE_BACKEND_API}uploads/${option.image}`
         ) : (
           <BsFire />
         ),
@@ -202,7 +202,7 @@ const SubmenuPage = () => {
       cards.forEach((card) => {
         if (card instanceof HTMLElement) {
           card.classList.remove("shine-animate");
-          void card.offsetWidth; // Trigger reflow
+          void card.offsetWidth;
           card.classList.add("shine-animate");
         }
       });
@@ -260,9 +260,7 @@ const SubmenuPage = () => {
                 textTransform: "uppercase",
               }}
             >
-              {submenu === "Hot Games"
-                ? "Hot Games"
-                : category?.title || ""}
+              {submenu === "Hot Games" ? "Hot Games" : category?.title || ""}
             </h2>
           </div>
 
@@ -309,19 +307,9 @@ const SubmenuPage = () => {
           </SwiperContainer>
         </div>
 
-        {/* Game Grid with Auto-Shine Effect */}
+        {/* Game Grid with Updated Image Logic */}
         <div className="grid grid-cols-3 md:grid-cols-5 gap-4 mt-2">
           {categoryGame?.map((game, index) => {
-            // Image logic (prioritize Tk999)
-            const docs =
-              game?.apiData?.projectImageDocs || game?.projectImageDocs || [];
-            const match = docs.find(
-              (d) => d?.projectName?.title === "Tk999" && d?.image
-            );
-            const imgPath =
-              match?.image || game?.image || game?.apiData?.image || "";
-            const src = imgPath ? `${IMAGE_BASE}/${imgPath}` : "";
-
             return (
               <div
                 key={game._id || index}
@@ -335,9 +323,31 @@ const SubmenuPage = () => {
                 <div className="shine-layer"></div>
 
                 <img
-                  src={src}
+                  src={(() => {
+                    // প্রথমে কাস্টম ইমেজ চেক (GameControl থেকে সেভ করা)
+                    if (game?.image && game.image !== "") {
+                      return `${import.meta.env.VITE_BACKEND_API}uploads/${game.image}`;
+                    }
+
+                    // তারপর Tk999 প্রজেক্ট ইমেজ
+                    const docs =
+                      game?.apiData?.projectImageDocs ||
+                      game?.projectImageDocs ||
+                      [];
+                    const match = docs.find(
+                      (d) => d?.projectName?.title === "Tk999" && d?.image,
+                    );
+                    const imgPath = match?.image || game?.apiData?.image || "";
+
+                    return imgPath
+                      ? `${IMAGE_BASE}/${imgPath}`
+                      : "/placeholder-game.png";
+                  })()}
                   alt={game?.apiData?.name || game?.name || "Game"}
                   className="w-full h-full object-cover rounded-lg xl:rounded-xl transition-transform duration-500 group-hover:scale-110 group-hover:blur-[2px]"
+                  onError={(e) => {
+                    e.target.src = "/placeholder-game.png";
+                  }}
                 />
 
                 {game?.showHeart && (
@@ -385,7 +395,7 @@ const SubmenuPage = () => {
                   {category?.image && (
                     <img
                       className="w-8 mt-2"
-                      src={`${baseURL_For_IMG_UPLOAD}s/${category.image}`}
+                      src={`${import.meta.env.VITE_BACKEND_API}uploads/${category.image}`}
                       alt="vendor logo"
                     />
                   )}
@@ -420,7 +430,7 @@ const SubmenuPage = () => {
         />
       </Modal>
 
-      {/* Auto-shine CSS (same as GameCard) */}
+      {/* Auto-shine CSS */}
       <style>{`
         .auto-shine {
           position: relative;

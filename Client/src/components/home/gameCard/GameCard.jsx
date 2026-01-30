@@ -198,19 +198,25 @@ const GameCard = ({ title = "HOT GAMES", games = [], parentId = "" }) => {
             >
               <div className="shine-layer"></div>
 
-              {/* FIXED IMAGE SIZE */}
+              {/* UPDATED IMAGE LOGIC */}
               <div className="w-full h-full">
                 <img
                   src={(() => {
+                    // প্রথমে ডাটাবেস থেকে আসা custom image চেক করা হবে
+                    if (game?.image && game.image !== "") {
+                      return `${import.meta.env.VITE_BACKEND_API}uploads/${game.image}`;
+                    }
+
+                    // যদি custom image না থাকে বা খালি থাকে → Tk999 প্রজেক্ট ইমেজ চেক
                     const docs =
                       game?.apiData?.projectImageDocs ||
                       game?.projectImageDocs ||
                       [];
                     const match = docs.find(
-                      (d) => d?.projectName?.title === "Tk999" && d?.image
+                      (d) => d?.projectName?.title === "Tk999" && d?.image,
                     );
-                    const imgPath =
-                      match?.image || game?.image || game?.apiData?.image || "";
+                    const imgPath = match?.image || game?.apiData?.image || "";
+
                     return imgPath ? `${IMAGE_BASE}/${imgPath}` : "";
                   })()}
                   alt={game?.apiData?.name || game?.name || "game"}
@@ -247,18 +253,20 @@ const GameCard = ({ title = "HOT GAMES", games = [], parentId = "" }) => {
             <div className="flex items-center gap-4 mb-4">
               <img
                 src={(() => {
+                  // মোবাইল বটম শিটেও একই লজিক
+                  if (selectedGame?.image && selectedGame.image !== "") {
+                    return `${import.meta.env.VITE_BACKEND_API}uploads/${selectedGame.image}`;
+                  }
+
                   const docs =
                     selectedGame?.apiData?.projectImageDocs ||
                     selectedGame?.projectImageDocs ||
                     [];
                   const match = docs.find(
-                    (d) => d?.projectName?.title === "Tk999" && d?.image
+                    (d) => d?.projectName?.title === "Tk999" && d?.image,
                   );
                   const imgPath =
-                    match?.image ||
-                    selectedGame?.image ||
-                    selectedGame?.apiData?.image ||
-                    "";
+                    match?.image || selectedGame?.apiData?.image || "";
                   return imgPath ? `${IMAGE_BASE}/${imgPath}` : "";
                 })()}
                 className="w-24 h-24 object-cover rounded-xl shadow-lg border-2 border-[#00ffaa] -mt-12"

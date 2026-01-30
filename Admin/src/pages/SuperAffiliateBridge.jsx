@@ -117,7 +117,7 @@ const SuperAffiliateBridge = () => {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
           <h1 className="text-3xl sm:text-4xl font-bold text-white">
-            Super Affiliate Bridge
+            Super Affiliate Bluk
           </h1>
 
           <div className="flex flex-col sm:flex-row gap-4 items-center flex-wrap">
@@ -165,7 +165,7 @@ const SuperAffiliateBridge = () => {
               ) : (
                 <>
                   <FaLink />
-                  Bridge All
+                  Bluk All
                 </>
               )}
             </button>
@@ -189,7 +189,7 @@ const SuperAffiliateBridge = () => {
                       Username
                     </th>
                     <th className="px-6 py-5 text-emerald-300 font-semibold">
-                      Game Win Bal.
+                      Minus Bal.
                     </th>
                     <th className="px-6 py-5 text-emerald-300 font-semibold">
                       Game Loss Bal.
@@ -239,12 +239,12 @@ const SuperAffiliateBridge = () => {
                           {bridgingId === aff._id ? (
                             <>
                               <FaSpinner className="animate-spin" />
-                              Bridging...
+                              Bluking...
                             </>
                           ) : (
                             <>
                               <FaLink size={16} />
-                              Bridge
+                              Bluk
                             </>
                           )}
                         </button>
@@ -312,7 +312,7 @@ const SuperAffiliateBridge = () => {
                     ) : (
                       <>
                         <FaLink />
-                        Bridge Now
+                        Bluk Now
                       </>
                     )}
                   </button>

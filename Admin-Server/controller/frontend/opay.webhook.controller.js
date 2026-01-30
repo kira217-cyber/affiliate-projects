@@ -23,6 +23,7 @@ exports.opayVerificationCallback = async (req, res) => {
 
     // Upsert by trxid to keep idempotency
     const filter = doc.trxid ? { trxid: doc.trxid } : { token: doc.token, userIdentifyAddress: doc.userIdentifyAddress };
+    // akhane post method hobe  akahne :  userIdentifyAddress and amount ta jabe 
     const saved = await OpayVerifiedTransaction.findOneAndUpdate(
       filter,
       { $set: doc },

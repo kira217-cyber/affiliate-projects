@@ -228,16 +228,16 @@ const CustomSidebar = () => {
       ],
     },
     {
-      label: "Bridge Affiliator",
+      label: "Bluk Affiliator",
       icon: <FaWallet />,
       submenu: [
         {
-          label: "Super Affiliator Bridge",
+          label: "Super Affiliator Bluk",
           icon: <FaUserCheck />,
           to: "/super-affiliate-bridge",
         },
         {
-          label: "Master Affiliator Bridge",
+          label: "Master Affiliator Bluk",
           icon: <FaUserTimes />,
           to: "/master-affiliate-bridge",
         },

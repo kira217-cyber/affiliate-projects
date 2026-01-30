@@ -108,7 +108,7 @@ const MasterAffiliateBridge = () => {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
           <h1 className="text-3xl sm:text-4xl font-bold text-white">
-            Master Affiliate Bridge
+            Master Affiliate Bluk
           </h1>
 
           <div className="flex flex-col sm:flex-row gap-4 items-center">
@@ -156,7 +156,7 @@ const MasterAffiliateBridge = () => {
               ) : (
                 <>
                   <FaLink />
-                  Bridge All
+                  Bluk All
                 </>
               )}
             </button>
@@ -175,7 +175,7 @@ const MasterAffiliateBridge = () => {
                 <thead>
                   <tr className="bg-gradient-to-r from-amber-950/80 to-gray-900/80 border-b border-amber-800/50">
                     <th className="px-6 py-5 text-amber-300 font-semibold">Username</th>
-                    <th className="px-6 py-5 text-amber-300 font-semibold">Game Win Bal.</th>
+                    <th className="px-6 py-5 text-amber-300 font-semibold">Minus Bal.</th>
                     <th className="px-6 py-5 text-amber-300 font-semibold">Game Loss Bal.</th>
                     <th className="px-6 py-5 text-amber-300 font-semibold">Deposit Bal.</th>
                     <th className="px-6 py-5 text-amber-300 font-semibold">Refer Bal.</th>
@@ -214,12 +214,12 @@ const MasterAffiliateBridge = () => {
                           {bridgingId === aff._id ? (
                             <>
                               <FaSpinner className="animate-spin" />
-                              Bridging...
+                              Bluking...
                             </>
                           ) : (
                             <>
                               <FaLink size={16} />
-                              Bridge
+                              Bluk
                             </>
                           )}
                         </button>
@@ -285,7 +285,7 @@ const MasterAffiliateBridge = () => {
                     ) : (
                       <>
                         <FaLink />
-                        Bridge Now
+                        Bluk Now
                       </>
                     )}
                   </button>

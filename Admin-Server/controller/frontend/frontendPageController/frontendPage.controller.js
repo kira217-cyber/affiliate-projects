@@ -130,7 +130,6 @@ exports.updateNotice = async (req, res) => {
 };
 
 // for seed
-
 exports.seedGameNavBar = async (req, res) => {
   try {
     // Clear all existing data
@@ -432,6 +431,10 @@ exports.getNavBarWithMenuAndSubmenu = async (req, res) => {
 };
 
 // * ========== game section  ========== //
+
+
+
+
 exports.getAllGames = async (req, res) => {
   console.log("this is game --> ");
 
@@ -460,28 +463,31 @@ exports.getGameById = async (req, res) => {
   }
 };
 
+// createGame
 exports.createGame = async (req, res) => {
   try {
-    const { gameAPIID, image, subOptions, isHotGame, isNewGame, isLobbyGame } = req.body;
+    const { gameAPIID, subOptions, isHotGame, isNewGame, isLobbyGame, image } = req.body;
 
     if (!gameAPIID || !subOptions) {
-      return res.status(400).json({ error: "gameAPIID and subOptions are required" });
+      return res.status(400).json({ success: false, error: "gameAPIID and subOptions required" });
     }
 
     const game = await GameModel.create({
       gameAPIID,
-      image: image || '',
       subOptions,
       isHotGame: !!isHotGame,
       isNewGame: !!isNewGame,
       isLobbyGame: !!isLobbyGame,
+      image: image || "",               // ← এটা গ্রহণ করছে
     });
-    res.status(201).json(game);
+
+    res.status(201).json({ success: true, data: game });
   } catch (err) {
-    handleError(res, err, 400);
+    res.status(400).json({ success: false, error: err.message });
   }
 };
 
+// updateGame (আগের মতোই ঠিক আছে, image আপডেট হবে)
 exports.updateGame = async (req, res) => {
   try {
     const { gameAPIID, image, subOptions, isHotGame, isNewGame, isLobbyGame } = req.body;
@@ -515,6 +521,9 @@ exports.deleteGame = async (req, res) => {
     handleError(res, err, 400);
   }
 };
+
+
+
 
 // * =========== frontend game page ================
 
@@ -2763,92 +2772,92 @@ exports.getSubmenuProviders = async (req, res) => {
 };
 
 // * ========== game section  ========== //
-exports.getAllGames = async (req, res) => {
-  try {
-    const games = await GameModel.find()
-      .populate({
-        path: "subOptions",
-        populate: {
-          path: "parentMenuOption",
-        },
-      })
-      .lean();
-    res.status(200).json(games);
-  } catch (err) {
-    handleError(res, err);
-  }
-};
+// exports.getAllGames = async (req, res) => {
+//   try {
+//     const games = await GameModel.find()
+//       .populate({
+//         path: "subOptions",
+//         populate: {
+//           path: "parentMenuOption",
+//         },
+//       })
+//       .lean();
+//     res.status(200).json(games);
+//   } catch (err) {
+//     handleError(res, err);
+//   }
+// };
 
-exports.getGameById = async (req, res) => {
-  try {
-    const game = await GameModel.findById(req.params.id).lean();
-    if (!game) return res.status(404).json({ error: "Game not found" });
-    res.status(200).json(game);
-  } catch (err) {
-    handleError(res, err, 404);
-  }
-};
+// exports.getGameById = async (req, res) => {
+//   try {
+//     const game = await GameModel.findById(req.params.id).lean();
+//     if (!game) return res.status(404).json({ error: "Game not found" });
+//     res.status(200).json(game);
+//   } catch (err) {
+//     handleError(res, err, 404);
+//   }
+// };
 
-exports.createGame = async (req, res) => {
-  try {
-    const { gameAPIID, image = "", subOptions, isHotGame } = req.body;
+// exports.createGame = async (req, res) => {
+//   try {
+//     const { gameAPIID, image = "", subOptions, isHotGame } = req.body;
 
-    if (!gameAPIID || !subOptions) {
-      return sendResponse(res, 400, false, "gameAPIID and subOptions are required");
-    }
+//     if (!gameAPIID || !subOptions) {
+//       return sendResponse(res, 400, false, "gameAPIID and subOptions are required");
+//     }
 
-    // Prevent duplicates per category
-    const existingGame = await GameModel.findOne({ gameAPIID, subOptions });
-    if (existingGame) {
-      return sendResponse(
-        res,
-        409,
-        false,
-        "This game has already been added to this category."
-      );
-    }
+//     // Prevent duplicates per category
+//     const existingGame = await GameModel.findOne({ gameAPIID, subOptions });
+//     if (existingGame) {
+//       return sendResponse(
+//         res,
+//         409,
+//         false,
+//         "This game has already been added to this category."
+//       );
+//     }
 
-    const game = await GameModel.create({
-      gameAPIID,
-      image,
-      subOptions,
-      isHotGame,
-    });
-    sendResponse(res, 201, true, "Game created successfully", game);
-  } catch (err) {
-    handleError(res, err, 400);
-  }
-};
+//     const game = await GameModel.create({
+//       gameAPIID,
+//       image,
+//       subOptions,
+//       isHotGame,
+//     });
+//     sendResponse(res, 201, true, "Game created successfully", game);
+//   } catch (err) {
+//     handleError(res, err, 400);
+//   }
+// };
 
-exports.updateGame = async (req, res) => {
-  try {
-    const { image, subOptions, isHotGame } = req.body;
-    const update = {};
-    if (image !== undefined) update.image = image;
-    if (subOptions !== undefined) update.subOptions = subOptions;
-    if (typeof isHotGame === "boolean") update.isHotGame = isHotGame;
+// exports.updateGame = async (req, res) => {
+//   try {
+//     const { image, subOptions, isHotGame } = req.body;
+//     const update = {};
+//     if (image !== undefined) update.image = image;
+//     if (subOptions !== undefined) update.subOptions = subOptions;
+//     if (typeof isHotGame === "boolean") update.isHotGame = isHotGame;
 
-    const game = await GameModel.findByIdAndUpdate(
-      req.params.id,
-      { $set: update },
-      { new: true }
-    );
-    if (!game) return sendResponse(res, 404, false, "Game not found");
-    sendResponse(res, 200, true, "Game updated successfully", game);
-  } catch (err) {
-    handleError(res, err, 400);
-  }
-};
+//     const game = await GameModel.findByIdAndUpdate(
+//       req.params.id,
+//       { $set: update },
+//       { new: true }
+//     );
+//     if (!game) return sendResponse(res, 404, false, "Game not found");
+//     sendResponse(res, 200, true, "Game updated successfully", game);
+//   } catch (err) {
+//     handleError(res, err, 400);
+//   }
+// };
 
-exports.deleteGame = async (req, res) => {
-  try {
-    const game = await GameModel.findByIdAndDelete(req.params.id);
-    if (!game) return sendResponse(res, 404, false, "Game not found");
-    sendResponse(res, 200, true, "Game deleted successfully");
-  } catch (err) {
-    handleError(res, err, 400);
-  }
-};
+// exports.deleteGame = async (req, res) => {
+//   try {
+//     const game = await GameModel.findByIdAndDelete(req.params.id);
+//     if (!game) return sendResponse(res, 404, false, "Game not found");
+//     sendResponse(res, 200, true, "Game deleted successfully");
+//   } catch (err) {
+//     handleError(res, err, 400);
+//   }
+// };
 
 /**
  * 
