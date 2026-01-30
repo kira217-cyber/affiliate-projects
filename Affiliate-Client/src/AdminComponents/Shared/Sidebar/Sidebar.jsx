@@ -10,7 +10,7 @@ const Sidebar = () => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeSubDropdown, setActiveSubDropdown] = useState(null);
   const location = useLocation();
-  const { logout, user, refreshBalance, balance } = useContext(AuthContext);
+  const { logout, user, refreshBalance, balance ,reloadUser} = useContext(AuthContext);
 
   const handleDropdown = (menu) => {
     setActiveDropdown(activeDropdown === menu ? null : menu);
@@ -136,7 +136,7 @@ const Sidebar = () => {
               <span className="">{balance}</span>{" "}
             </div>{" "}
             <button
-              onClick={refreshBalance}
+              onClick={reloadUser}
               className="flex items-center justify-center gap-2 hover:cursor-pointer"
             >
               {" "}

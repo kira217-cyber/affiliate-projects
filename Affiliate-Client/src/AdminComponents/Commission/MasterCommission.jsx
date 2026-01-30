@@ -12,6 +12,7 @@ const MasterCommission = () => {
     gameLossCommissionBalance,
     depositCommissionBalance,
     referCommissionBalance,
+    gameWinCommissionBalance,
     refreshUser,
   } = useContext(AuthContext);
 
@@ -27,7 +28,7 @@ const MasterCommission = () => {
     const fetchConfig = async () => {
       try {
         const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/balance-transfer`
+          `${import.meta.env.VITE_API_URL}/api/balance-transfer`,
         );
         setTransferConfig(res.data.data || {});
       } catch (err) {
@@ -88,7 +89,7 @@ const MasterCommission = () => {
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/balance-transfer/main-balance`,
-        { from: source, amount: amt, userId: userId }
+        { from: source, amount: amt, userId: userId },
       );
 
       if (res.data.success) {
@@ -112,23 +113,43 @@ const MasterCommission = () => {
       s.key === "commissionBalance"
         ? "from-pink-500 via-red-500 to-yellow-500"
         : s.key === "gameLossCommissionBalance"
-        ? "from-blue-600 to-cyan-400"
-        : s.key === "depositCommissionBalance"
-        ? "from-purple-600 to-pink-500"
-        : "from-green-500 to-lime-400",
+          ? "from-blue-600 to-cyan-400"
+          : s.key === "depositCommissionBalance"
+            ? "from-purple-600 to-pink-500"
+            : "from-green-500 to-lime-400",
   }));
+
+  // Check if gameWinCommissionBalance > 0 → block transfer
+  const canTransfer = gameWinCommissionBalance <= 0;
 
   return (
     <div className="bg-[#1e293b] text-white p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-10">
+        {/* Header + Button / Warning */}
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-10 gap-6">
           <h1 className="text-4xl font-bold">Master Commission</h1>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-gradient-to-r cursor-pointer from-cyan-500 to-blue-600 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:scale-105 transition"
-          >
-            Transfer to Main Balance
-          </button>
+
+          {/* Transfer Button or Warning */}
+          {canTransfer ? (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-gradient-to-r cursor-pointer from-cyan-500 to-blue-600 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:scale-105 transition w-full sm:w-auto"
+            >
+              Transfer to Main Balance
+            </button>
+          ) : (
+            <div className="bg-gradient-to-r from-red-600/20 to-rose-600/20 border border-red-500/50 rounded-xl p-6 text-center w-full sm:w-auto">
+              <p className="text-lg font-semibold text-red-300">
+                Admin has not bridged your amount yet.
+              </p>
+              <p className="text-sm text-red-400 mt-2">
+                Please ask admin to bridge your Game Win Commission first.
+              </p>
+              <p className="text-xl font-bold text-white mt-3">
+                Game Win Balance: ৳{Number(gameWinCommissionBalance).toFixed(2)}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Stats Cards */}
@@ -150,8 +171,8 @@ const MasterCommission = () => {
         </div>
       </div>
 
-      {/* Transfer Modal */}
-      {isModalOpen && (
+      {/* Transfer Modal - শুধু canTransfer true হলে খুলবে */}
+      {isModalOpen && canTransfer && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}

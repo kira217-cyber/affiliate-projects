@@ -1,4 +1,4 @@
-// src/pages/MasterAffiliate.jsx
+// src/pages/MasterAffiliate.jsx  (অথবা যে ফাইলেই MyDownline আছে)
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
@@ -16,7 +16,7 @@ const MyDownline = () => {
     username: "",
     password: "",
   });
-  const [showPassword, setShowPassword] = useState(false); // নতুন: পাসওয়ার্ড দেখানো/লুকানো
+  const [showPassword, setShowPassword] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["user"],
@@ -24,7 +24,7 @@ const MyDownline = () => {
       const userId = localStorage.getItem("userId");
       if (!userId) throw new Error("No user ID found");
       const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/admin?id=${userId}`
+        `${import.meta.env.VITE_API_URL}/api/admin?id=${userId}`,
       );
       return res.data.user;
     },
@@ -38,7 +38,7 @@ const MyDownline = () => {
     mutationFn: ({ id, commissions }) =>
       axios.patch(
         `${import.meta.env.VITE_API_URL}/api/approve-user/${id}`,
-        commissions
+        commissions,
       ),
     onSuccess: () => {
       toast.success("User activated & commissions updated!");
@@ -65,13 +65,8 @@ const MyDownline = () => {
   const updateUserMutation = useMutation({
     mutationFn: ({ id, username, password }) =>
       axios.patch(
-        `${
-          import.meta.env.VITE_API_URL
-        }/api/update-master-affiliate-credentials/${id}`,
-        {
-          username,
-          password,
-        }
+        `${import.meta.env.VITE_API_URL}/api/update-master-affiliate-credentials/${id}`,
+        { username, password },
       ),
     onSuccess: () => {
       toast.success("User credentials updated successfully!");
@@ -99,17 +94,20 @@ const MyDownline = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
+
+    const commissions = {
+      gameLossCommission: Number(formData.get("gameLossCommission")) || 0,
+      depositCommission: Number(formData.get("depositCommission")) || 0,
+      referCommission: Number(formData.get("referCommission")) || 0,
+      gameWinCommission: Number(formData.get("gameWinCommission")) || 0, // ← নতুন
+    };
+
     approveMutation.mutate({
       id: selectedUser._id,
-      commissions: {
-        gameLossCommission: formData.get("gameLossCommission") || 0,
-        depositCommission: formData.get("depositCommission") || 0,
-        referCommission: formData.get("referCommission") || 0,
-      },
+      commissions,
     });
   };
 
-  // View User Data
   const handleViewUser = (user) => {
     setViewUser(user);
     setPasswordForm({ username: user.username, password: "" });
@@ -134,6 +132,7 @@ const MyDownline = () => {
     return (
       <div className="text-white text-center py-20 text-xl">Loading...</div>
     );
+
   if (error)
     return (
       <div className="text-red-400 text-center py-20">
@@ -191,7 +190,6 @@ const MyDownline = () => {
                         <td className="py-4 px-4">{user.username}</td>
                         <td className="py-4 px-4">{user.email}</td>
                         <td className="py-4 px-4">{user.whatsapp}</td>
-                        {/* ব্যালেন্স দেখানো হচ্ছে */}
                         <td className="py-4 px-4 font-semibold text-green-400">
                           ৳{user.balance || 0}
                         </td>
@@ -244,7 +242,7 @@ const MyDownline = () => {
         )}
       </motion.div>
 
-      {/* কমিশন মডাল */}
+      {/* কমিশন মডাল – gameWinCommission যোগ করা */}
       {modalOpen && selectedUser && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <motion.div
@@ -269,6 +267,21 @@ const MyDownline = () => {
                   className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:ring-2 focus:ring-green-500"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm text-gray-300 mb-1">
+                  Game Win Commission (%)
+                </label>
+                <input
+                  type="number"
+                  name="gameWinCommission" // ← নতুন ফিল্ড
+                  defaultValue={selectedUser.gameWinCommission || 0}
+                  min="0"
+                  step="0.01"
+                  className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm text-gray-300 mb-1">
                   Deposit Commission (%)
@@ -282,6 +295,7 @@ const MyDownline = () => {
                   className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:ring-2 focus:ring-green-500"
                 />
               </div>
+
               <div>
                 <label className="block text-sm text-gray-300 mb-1">
                   Refer Commission (%)
@@ -295,6 +309,7 @@ const MyDownline = () => {
                   className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:ring-2 focus:ring-green-500"
                 />
               </div>
+
               <div className="flex gap-3 mt-6">
                 <button
                   type="submit"
@@ -321,7 +336,7 @@ const MyDownline = () => {
         </div>
       )}
 
-      {/* View & Edit User Modal (পাসওয়ার্ড শো/হাইড সহ) */}
+      {/* View & Edit User Modal */}
       {viewModalOpen && viewUser && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <motion.div
@@ -350,6 +365,7 @@ const MyDownline = () => {
                   required
                 />
               </div>
+
               <div className="relative">
                 <label className="block text-sm text-gray-300 mb-1">
                   New Password
@@ -381,6 +397,7 @@ const MyDownline = () => {
                   If you don't enter the password, It will be Outdated.
                 </p>
               </div>
+
               <div className="flex gap-3 mt-6">
                 <button
                   type="submit"

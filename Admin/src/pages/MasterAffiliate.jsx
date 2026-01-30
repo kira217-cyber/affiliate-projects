@@ -1,4 +1,3 @@
-// src/pages/MasterAffiliate.jsx
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
@@ -6,14 +5,11 @@ import {
   FaToggleOff,
   FaEye,
   FaEyeSlash,
-  FaUser,
-  FaEnvelope,
-  FaPhone,
-  FaDollarSign,
   FaEdit,
   FaCogs,
   FaPlus,
   FaSpinner,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { API_URL } from "../utils/baseURL";
@@ -40,6 +36,7 @@ export default function MasterAffiliate() {
     gameLossCommission: 0,
     depositCommission: 0,
     referCommission: 0,
+    gameWinCommission: 0,
   });
 
   // Create Modal
@@ -52,6 +49,7 @@ export default function MasterAffiliate() {
     gameLossCommission: "",
     depositCommission: "",
     referCommission: "",
+    gameWinCommission: "",
     referredBy: "",
   });
   const [showCreatePassword, setShowCreatePassword] = useState(false);
@@ -103,6 +101,7 @@ export default function MasterAffiliate() {
         gameLossCommission: user.gameLossCommission || 0,
         depositCommission: user.depositCommission || 0,
         referCommission: user.referCommission || 0,
+        gameWinCommission: user.gameWinCommission || 0,
       });
       setCommissionModalOpen(true);
     }
@@ -134,7 +133,11 @@ export default function MasterAffiliate() {
         },
       );
       if (!res.ok) throw new Error("Update failed");
-      toast.success("User activated & commission updated!");
+      toast.success(
+        selectedUser.isActive
+          ? "Commission updated!"
+          : "User activated & commission updated!",
+      );
       setCommissionModalOpen(false);
       setSelectedUser(null);
       fetchMasterAffiliates();
@@ -189,7 +192,6 @@ export default function MasterAffiliate() {
       toast.error("Please fill all required fields");
       return;
     }
-
     try {
       const res = await fetch(`${API_URL}/api/create/master-affiliates`, {
         method: "POST",
@@ -202,13 +204,12 @@ export default function MasterAffiliate() {
           gameLossCommission: Number(createForm.gameLossCommission) || 0,
           depositCommission: Number(createForm.depositCommission) || 0,
           referCommission: Number(createForm.referCommission) || 0,
+          gameWinCommission: Number(createForm.gameWinCommission) || 0,
           referredBy: createForm.referredBy,
         }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Creation failed");
-
       toast.success("Master Affiliate created successfully!");
       setCreateModalOpen(false);
       setCreateForm({
@@ -219,6 +220,7 @@ export default function MasterAffiliate() {
         gameLossCommission: "",
         depositCommission: "",
         referCommission: "",
+        gameWinCommission: "",
         referredBy: "",
       });
       fetchMasterAffiliates();
@@ -286,7 +288,7 @@ export default function MasterAffiliate() {
             className="flex items-center gap-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white px-5 sm:px-6 py-3 sm:py-4 rounded-full font-bold shadow-2xl cursor-pointer"
           >
             <FaPlus className="text-xl" />
-            Create Master Affiliate
+            Create
           </motion.button>
         </div>
 
@@ -298,7 +300,7 @@ export default function MasterAffiliate() {
           <>
             {/* Desktop Table */}
             <div className="hidden lg:block overflow-x-auto rounded-2xl border border-emerald-800/40 bg-gray-900/40 backdrop-blur-md shadow-2xl mb-10">
-              <table className="w-full min-w-[1000px] text-left">
+              <table className="w-full min-w-[1200px] text-left">
                 <thead>
                   <tr className="bg-gradient-to-r from-emerald-950/80 to-gray-900/80 border-b border-emerald-800/50">
                     <th className="px-6 py-5 text-emerald-300 font-semibold cursor-default">
@@ -460,7 +462,7 @@ export default function MasterAffiliate() {
                       </button>
 
                       <button
-                       onClick={() => handleToggleClick(user)}
+                        onClick={() => handleToggleClick(user)}
                         className="flex-1 flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white rounded-xl font-medium cursor-pointer transition-all"
                       >
                         <FaCogs />
@@ -475,19 +477,18 @@ export default function MasterAffiliate() {
         )}
       </div>
 
-      {/* Create Modal - Scrollable on Mobile */}
+      {/* Create Modal */}
       {createModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-2 overflow-y-auto">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-gradient-to-br from-gray-800/95 to-gray-900/95 backdrop-blur-lg border border-emerald-800/50 rounded-2xl p-6 sm:p-8 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl my-4"
+            className="bg-gradient-to-br from-gray-800/95 to-gray-900/95 backdrop-blur-lg border border-emerald-800/50 rounded-2xl p-4 w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl my-4"
           >
             <h3 className="text-2xl font-bold text-white mb-6 text-center sticky top-0 bg-gradient-to-br from-gray-800/95 to-gray-900/95 z-10 py-2">
               Create Master Affiliate
             </h3>
-
             <form onSubmit={handleCreateSubmit} className="space-y-5">
               <div>
                 <label className="block text-emerald-300 font-medium mb-2">
@@ -500,7 +501,7 @@ export default function MasterAffiliate() {
                     setCreateForm({ ...createForm, username: e.target.value })
                   }
                   required
-                  className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30 cursor-text"
+                  className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30"
                 />
               </div>
 
@@ -515,7 +516,7 @@ export default function MasterAffiliate() {
                     setCreateForm({ ...createForm, email: e.target.value })
                   }
                   required
-                  className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30 cursor-text"
+                  className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30"
                 />
               </div>
 
@@ -531,12 +532,12 @@ export default function MasterAffiliate() {
                       setCreateForm({ ...createForm, password: e.target.value })
                     }
                     required
-                    className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30 cursor-text pr-12"
+                    className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30 pr-12"
                   />
                   <button
                     type="button"
                     onClick={() => setShowCreatePassword(!showCreatePassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-emerald-300 cursor-pointer"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-emerald-300"
                   >
                     {showCreatePassword ? <FaEyeSlash /> : <FaEye />}
                   </button>
@@ -554,7 +555,7 @@ export default function MasterAffiliate() {
                     setCreateForm({ ...createForm, whatsapp: e.target.value })
                   }
                   required
-                  className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30 cursor-text"
+                  className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30"
                 />
               </div>
 
@@ -579,7 +580,7 @@ export default function MasterAffiliate() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 <div>
                   <label className="block text-emerald-300 font-medium mb-2">
                     Game Loss (%)
@@ -594,7 +595,24 @@ export default function MasterAffiliate() {
                         gameLossCommission: e.target.value,
                       })
                     }
-                    className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30 cursor-text"
+                    className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-emerald-300 font-medium mb-2">
+                    Game Win (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={createForm.gameWinCommission}
+                    onChange={(e) =>
+                      setCreateForm({
+                        ...createForm,
+                        gameWinCommission: e.target.value,
+                      })
+                    }
+                    className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30"
                   />
                 </div>
                 <div>
@@ -611,7 +629,7 @@ export default function MasterAffiliate() {
                         depositCommission: e.target.value,
                       })
                     }
-                    className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30 cursor-text"
+                    className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30"
                   />
                 </div>
                 <div>
@@ -628,7 +646,7 @@ export default function MasterAffiliate() {
                         referCommission: e.target.value,
                       })
                     }
-                    className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30 cursor-text"
+                    className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30"
                   />
                 </div>
               </div>
@@ -638,7 +656,7 @@ export default function MasterAffiliate() {
                   type="submit"
                   className="flex-1 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white py-3 rounded-xl font-bold cursor-pointer transition-all shadow-lg"
                 >
-                  Create Master Affiliate
+                  Create
                 </button>
                 <button
                   type="button"
@@ -652,6 +670,7 @@ export default function MasterAffiliate() {
                       gameLossCommission: "",
                       depositCommission: "",
                       referCommission: "",
+                      gameWinCommission: "",
                       referredBy: "",
                     });
                   }}
@@ -676,7 +695,6 @@ export default function MasterAffiliate() {
             <h3 className="text-2xl font-bold text-white mb-6 text-center">
               Edit: {viewUser.username}
             </h3>
-
             <form onSubmit={handlePasswordSubmit} className="space-y-5">
               <div>
                 <label className="block text-emerald-300 font-medium mb-2">
@@ -692,7 +710,7 @@ export default function MasterAffiliate() {
                     })
                   }
                   required
-                  className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30 cursor-text"
+                  className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30"
                 />
               </div>
 
@@ -711,12 +729,12 @@ export default function MasterAffiliate() {
                       })
                     }
                     placeholder="Leave blank to keep current"
-                    className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30 cursor-text pr-12"
+                    className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30 pr-12"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-emerald-300 cursor-pointer"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-emerald-300"
                   >
                     {showPassword ? <FaEyeSlash /> : <FaEye />}
                   </button>
@@ -759,63 +777,83 @@ export default function MasterAffiliate() {
               {selectedUser.isActive ? "Update" : "Set"} Commission:{" "}
               {selectedUser.username}
             </h3>
-
             <form onSubmit={handleCommissionSubmit} className="space-y-5">
-              <div>
-                <label className="block text-emerald-300 font-medium mb-2">
-                  Game Loss Commission (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={commissionForm.gameLossCommission}
-                  onChange={(e) =>
-                    setCommissionForm({
-                      ...commissionForm,
-                      gameLossCommission: Number(e.target.value),
-                    })
-                  }
-                  min="0"
-                  className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30 cursor-text"
-                />
-              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-emerald-300 font-medium mb-2">
+                    Game Loss Commission (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={commissionForm.gameLossCommission}
+                    onChange={(e) =>
+                      setCommissionForm({
+                        ...commissionForm,
+                        gameLossCommission: Number(e.target.value),
+                      })
+                    }
+                    min="0"
+                    className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-emerald-300 font-medium mb-2">
-                  Deposit Commission (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={commissionForm.depositCommission}
-                  onChange={(e) =>
-                    setCommissionForm({
-                      ...commissionForm,
-                      depositCommission: Number(e.target.value),
-                    })
-                  }
-                  min="0"
-                  className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30 cursor-text"
-                />
-              </div>
+                <div>
+                  <label className="block text-emerald-300 font-medium mb-2">
+                    Game Win Commission (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={commissionForm.gameWinCommission}
+                    onChange={(e) =>
+                      setCommissionForm({
+                        ...commissionForm,
+                        gameWinCommission: Number(e.target.value),
+                      })
+                    }
+                    min="0"
+                    className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-emerald-300 font-medium mb-2">
-                  Refer Commission (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={commissionForm.referCommission}
-                  onChange={(e) =>
-                    setCommissionForm({
-                      ...commissionForm,
-                      referCommission: Number(e.target.value),
-                    })
-                  }
-                  min="0"
-                  className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30 cursor-text"
-                />
+                <div>
+                  <label className="block text-emerald-300 font-medium mb-2">
+                    Deposit Commission (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={commissionForm.depositCommission}
+                    onChange={(e) =>
+                      setCommissionForm({
+                        ...commissionForm,
+                        depositCommission: Number(e.target.value),
+                      })
+                    }
+                    min="0"
+                    className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-emerald-300 font-medium mb-2">
+                    Refer Commission (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={commissionForm.referCommission}
+                    onChange={(e) =>
+                      setCommissionForm({
+                        ...commissionForm,
+                        referCommission: Number(e.target.value),
+                      })
+                    }
+                    min="0"
+                    className="w-full bg-gray-900/60 border border-emerald-800/50 rounded-xl px-5 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/30"
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 mt-8">

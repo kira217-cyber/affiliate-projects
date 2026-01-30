@@ -228,18 +228,18 @@ const CustomSidebar = () => {
       ],
     },
     {
-      label: "Wallet Agent",
+      label: "Bridge Affiliator",
       icon: <FaWallet />,
       submenu: [
         {
-          label: "All Active Wallet Agent",
+          label: "Super Affiliator Bridge",
           icon: <FaUserCheck />,
-          to: "/all-active-wallet-agent",
+          to: "/super-affiliate-bridge",
         },
         {
-          label: "Deactive Wallet Agent",
+          label: "Master Affiliator Bridge",
           icon: <FaUserTimes />,
-          to: "/deactive-wallet-agent",
+          to: "/master-affiliate-bridge",
         },
       ],
     },

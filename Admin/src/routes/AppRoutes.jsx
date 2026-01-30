@@ -48,6 +48,8 @@ import OpayApi from "../pages/OpayApi";
 import OpayDeviceMonitoring from "../pages/OpayDeviceMonitoring";
 import OpayDepositAdmin from "../pages/OpayDepositAdmin";
 import GameHistory from "../pages/GameHistory";
+import SuperAffiliateBridge from "../pages/SuperAffiliateBridge";
+import MasterAffiliateBridge from "../pages/MasterAffiliateBridge";
 
 const AppRoutes = () => (
   <Routes>
@@ -129,6 +131,8 @@ const AppRoutes = () => (
     <Route path="/opay/device-monitoring" element={<OpayDeviceMonitoring />} />
     <Route path="/opay/deposit" element={<OpayDepositAdmin />} />
     <Route path="/game-history" element={<GameHistory />} />
+    <Route path="/super-affiliate-bridge" element={<SuperAffiliateBridge />} />
+    <Route path="//master-affiliate-bridge" element={<MasterAffiliateBridge />} />
   </Routes>
 );
 

@@ -41,7 +41,8 @@ async function getDirectDownline(affiliateId) {
     .select("createdUsers")
     .populate({
       path: "createdUsers",
-      select: "username referralCode role balance commissionBalance gameLossCommissionBalance depositCommissionBalance referCommissionBalance createdAt",
+      select:
+        "username referralCode role balance commissionBalance gameLossCommissionBalance depositCommissionBalance referCommissionBalance createdAt",
     })
     .lean();
 
@@ -57,7 +58,10 @@ router.get("/affiliate/stats/:referralCode", async (req, res) => {
       referralCode: referralCode.toUpperCase(),
     }).lean();
 
-    if (!affiliate || !["super-affiliate", "master-affiliate"].includes(affiliate.role)) {
+    if (
+      !affiliate ||
+      !["super-affiliate", "master-affiliate"].includes(affiliate.role)
+    ) {
       return res.status(403).json({ message: "Access denied" });
     }
 
@@ -77,7 +81,9 @@ router.get("/affiliate/stats/:referralCode", async (req, res) => {
 
     // শুধু user role এর ডাটা নেওয়া (যেহেতু আমরা শুধু তাদের ID পেয়েছি)
     const downlineUsers = await Admin.find({
-      _id: { $in: downlineUserIds.map(id => new mongoose.Types.ObjectId(id)) },
+      _id: {
+        $in: downlineUserIds.map((id) => new mongoose.Types.ObjectId(id)),
+      },
     })
       .select("balance gameHistory")
       .lean();
@@ -118,7 +124,10 @@ router.get("/affiliate/downline-list/:referralCode", async (req, res) => {
       referralCode: referralCode.toUpperCase(),
     }).lean();
 
-    if (!affiliate || !["super-affiliate", "master-affiliate"].includes(affiliate.role)) {
+    if (
+      !affiliate ||
+      !["super-affiliate", "master-affiliate"].includes(affiliate.role)
+    ) {
       return res.status(403).json({ message: "Access denied" });
     }
 
@@ -257,7 +266,8 @@ router.post("/main/register", async (req, res) => {
   try {
     // ইউজার আগে থেকে আছে কিনা? (email চেক বাদ দিয়েছি)
     const exists = await Admin.findOne({ username });
-    if (exists) return res.status(400).json({ message: "Username already exists" });
+    if (exists)
+      return res.status(400).json({ message: "Username already exists" });
 
     let referredBy = null;
     let referrer = null;
@@ -395,12 +405,12 @@ router.get("/admin", async (req, res) => {
       .populate({
         path: "pendingRequests",
         select:
-          "username email whatsapp balance password isActive gameLossCommission depositCommission referCommission commissionBalance",
+          "username email whatsapp balance password isActive gameWinCommission gameLossCommission depositCommission referCommission commissionBalance",
       })
       .populate({
         path: "createdUsers",
         select:
-          "username email whatsapp balance password isActive gameLossCommission depositCommission referCommission commissionBalance",
+          "username email whatsapp balance password isActive gameWinCommission gameLossCommission depositCommission referCommission commissionBalance",
       });
 
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -442,13 +452,14 @@ router.get("/count-affiliates", async (req, res) => {
   }
 });
 
-// routes/admin.js → PATCH /approve-user/:id
+// PATCH: Approve / Update commissions (super-affiliate & master উভয়ের জন্য)
 router.patch("/approve-user/:id", async (req, res) => {
   const { id } = req.params;
   const {
     gameLossCommission = 0,
     depositCommission = 0,
     referCommission = 0,
+    gameWinCommission = 0, // ← নতুন
   } = req.body;
 
   try {
@@ -459,15 +470,15 @@ router.patch("/approve-user/:id", async (req, res) => {
         gameLossCommission: Number(gameLossCommission),
         depositCommission: Number(depositCommission),
         referCommission: Number(referCommission),
+        gameWinCommission: Number(gameWinCommission), // ← নতুন
       },
-      { new: true }
+      { new: true },
     ).select(
-      "username email whatsapp isActive gameLossCommission depositCommission referCommission commissionBalance"
+      "username email whatsapp isActive gameLossCommission depositCommission referCommission gameWinCommission commissionBalance",
     );
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // pendingRequests থেকে রিমুভ + createdUsers এ যোগ
     if (user.referredBy) {
       await Admin.findByIdAndUpdate(user.referredBy, {
         $pull: { pendingRequests: id },
@@ -488,7 +499,7 @@ router.patch("/deactivate-user/:id", async (req, res) => {
     const user = await Admin.findByIdAndUpdate(
       id,
       { isActive: false },
-      { new: true }
+      { new: true },
     );
 
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -613,7 +624,7 @@ router.get("/super-affiliates", async (req, res) => {
     const superAffiliates = await Admin.find({
       role: "super-affiliate",
     }).select(
-      "username email whatsapp balance password isActive gameLossCommission depositCommission referCommission commissionBalance"
+      "username email whatsapp balance password isActive referCommissionBalance depositCommissionBalance gameWinCommissionBalance gameLossCommissionBalance gameLossCommission gameWinCommission depositCommission referCommission commissionBalance",
     );
 
     res.json({ users: superAffiliates });
@@ -628,7 +639,7 @@ router.get("/master-affiliates", async (req, res) => {
     const masterAffiliates = await Admin.find({
       role: "master-affiliate",
     }).select(
-      "username email whatsapp balance password isActive gameLossCommission depositCommission referCommission commissionBalance"
+      "username email whatsapp balance password isActive referCommissionBalance depositCommissionBalance gameWinCommissionBalance gameLossCommissionBalance gameWinCommission gameLossCommission depositCommission referCommission commissionBalance",
     );
 
     res.json({ users: masterAffiliates });
@@ -648,6 +659,7 @@ router.post("/create/super-affiliates", async (req, res) => {
       gameLossCommission,
       depositCommission,
       referCommission,
+      gameWinCommission, // ← নতুন
     } = req.body;
 
     // Validation
@@ -657,7 +669,6 @@ router.post("/create/super-affiliates", async (req, res) => {
         .json({ message: "All required fields must be filled" });
     }
 
-    // Check if username or email already exists
     const existingUser = await Admin.findOne({
       $or: [{ username }, { email }],
     });
@@ -667,11 +678,9 @@ router.post("/create/super-affiliates", async (req, res) => {
         .json({ message: "Username or Email already exists" });
     }
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create new Super Affiliate
     const newUser = new Admin({
       username,
       email,
@@ -681,7 +690,8 @@ router.post("/create/super-affiliates", async (req, res) => {
       gameLossCommission: parseFloat(gameLossCommission) || 0,
       depositCommission: parseFloat(depositCommission) || 0,
       referCommission: parseFloat(referCommission) || 0,
-      isActive: false, // Default inactive, must activate later
+      gameWinCommission: parseFloat(gameWinCommission) || 0, // ← নতুন
+      isActive: false,
     });
 
     await newUser.save();
@@ -714,6 +724,7 @@ router.post("/create/master-affiliates", async (req, res) => {
       gameLossCommission,
       depositCommission,
       referCommission,
+      gameWinCommission, // নতুন যোগ করা
       referredBy, // Super Affiliate ID
     } = req.body;
 
@@ -734,7 +745,7 @@ router.post("/create/master-affiliates", async (req, res) => {
         .json({ message: "Username or Email already exists" });
     }
 
-    // Check if referredBy (Super Affiliate) exists
+    // Check if referredBy (Super Affiliate) exists and is valid
     const superAffiliate = await Admin.findById(referredBy);
     if (!superAffiliate || superAffiliate.role !== "super-affiliate") {
       return res.status(400).json({ message: "Invalid Super Affiliate" });
@@ -754,13 +765,14 @@ router.post("/create/master-affiliates", async (req, res) => {
       gameLossCommission: parseFloat(gameLossCommission) || 0,
       depositCommission: parseFloat(depositCommission) || 0,
       referCommission: parseFloat(referCommission) || 0,
+      gameWinCommission: parseFloat(gameWinCommission) || 0, // নতুন
       referredBy: superAffiliate._id,
       isActive: false,
     });
 
     await newMaster.save();
 
-    // Add new master to super affiliate's createdUsers
+    // Add new master to super affiliate's createdUsers array
     await Admin.findByIdAndUpdate(superAffiliate._id, {
       $push: { createdUsers: newMaster._id },
     });
@@ -820,7 +832,7 @@ router.put("/users/:id", async (req, res) => {
     const updatedUser = await Admin.findByIdAndUpdate(
       req.params.id,
       { $set: updates },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).select("-password");
 
     if (!updatedUser) {
@@ -919,8 +931,7 @@ router.patch("/update-user-commission/:id", async (req, res) => {
 // routes/profile.js বা যেখানে রাখো
 router.put("/update-name", async (req, res) => {
   try {
-    const { userId, firstName, lastName, username, email} =
-      req.body;
+    const { userId, firstName, lastName, username, email } = req.body;
 
     // userId ছাড়া হলে এরর
     if (!userId) {
@@ -969,7 +980,8 @@ router.put("/update-password", async (req, res) => {
 
     // Check current password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) return res.status(401).json({ message: "Current password is incorrect" });
+    if (!isMatch)
+      return res.status(401).json({ message: "Current password is incorrect" });
 
     // Hash new password
     const salt = await bcrypt.genSalt(10);
@@ -985,7 +997,6 @@ router.put("/update-password", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
 
 // GET: Fetch all wallets of a user
 router.get("/wallets/:userId", async (req, res) => {
@@ -1007,7 +1018,9 @@ router.post("/wallets", async (req, res) => {
     const { userId, methodId, processTab, inputs } = req.body;
 
     if (!userId) {
-      return res.status(400).json({ success: false, msg: "userId is required" });
+      return res
+        .status(400)
+        .json({ success: false, msg: "userId is required" });
     }
 
     const user = await Admin.findById(userId);
@@ -1016,7 +1029,9 @@ router.post("/wallets", async (req, res) => {
     }
 
     if (user.wallets.length >= 5) {
-      return res.status(400).json({ success: false, msg: "Maximum 5 wallets allowed" });
+      return res
+        .status(400)
+        .json({ success: false, msg: "Maximum 5 wallets allowed" });
     }
 
     user.wallets.push({
@@ -1040,7 +1055,9 @@ router.put("/wallets/:walletId", async (req, res) => {
     const { userId, methodId, processTab, inputs } = req.body;
 
     if (!userId) {
-      return res.status(400).json({ success: false, msg: "userId is required" });
+      return res
+        .status(400)
+        .json({ success: false, msg: "userId is required" });
     }
 
     const user = await Admin.findById(userId);
@@ -1073,7 +1090,9 @@ router.delete("/wallets/:walletId", async (req, res) => {
     const { userId } = req.query; // or req.body.userId
 
     if (!userId) {
-      return res.status(400).json({ success: false, msg: "userId is required" });
+      return res
+        .status(400)
+        .json({ success: false, msg: "userId is required" });
     }
 
     const user = await Admin.findById(userId);
@@ -1082,7 +1101,7 @@ router.delete("/wallets/:walletId", async (req, res) => {
     }
 
     const walletIndex = user.wallets.findIndex(
-      (w) => w._id.toString() === req.params.walletId
+      (w) => w._id.toString() === req.params.walletId,
     );
 
     if (walletIndex === -1) {
@@ -1096,6 +1115,324 @@ router.delete("/wallets/:walletId", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, msg: "Server error" });
+  }
+});
+
+// 1. POST /api/super-affiliate/bridge/:id
+router.post("/super-affiliate/bridge/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const superAff = await Admin.findOne({ _id: id, role: "super-affiliate" });
+    if (!superAff) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Super Affiliate not found" });
+    }
+
+    let {
+      gameWinCommissionBalance = 0,
+      gameLossCommissionBalance = 0,
+      depositCommissionBalance = 0,
+      referCommissionBalance = 0,
+    } = superAff;
+
+    // শুধু ৩টা ব্যালেন্সের যোগফল
+    const positiveSum =
+      gameLossCommissionBalance +
+      depositCommissionBalance +
+      referCommissionBalance;
+
+    // gameWin বিয়োগ করে result
+    const result = positiveSum - gameWinCommissionBalance;
+
+    if (result <= 0) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "No positive balance available after subtracting gameWin (result ≤ 0)",
+      });
+    }
+
+    // result কে ৩ ভাগ করে → নতুন ব্যালেন্স হবে শুধু এই share
+    const share = result / 3;
+
+    const updated = await Admin.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          gameWinCommissionBalance: 0,
+          gameLossCommissionBalance: share,
+          depositCommissionBalance: share,
+          referCommissionBalance: share,
+        },
+      },
+      { new: true },
+    );
+
+    res.json({
+      success: true,
+      message: "Bridge completed - balances reset to equal share",
+      data: {
+        previous: {
+          gameWin: gameWinCommissionBalance.toFixed(2),
+          gameLoss: gameLossCommissionBalance.toFixed(2),
+          deposit: depositCommissionBalance.toFixed(2),
+          refer: referCommissionBalance.toFixed(2),
+        },
+        subtractedFromWin: gameWinCommissionBalance.toFixed(2),
+        resultAfterSubtraction: result.toFixed(2),
+        sharePerBalance: share.toFixed(2),
+        newBalances: {
+          gameWin: 0,
+          gameLoss: updated.gameLossCommissionBalance.toFixed(2),
+          deposit: updated.depositCommissionBalance.toFixed(2),
+          refer: updated.referCommissionBalance.toFixed(2),
+        },
+      },
+    });
+  } catch (err) {
+    console.error("Bridge error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// 2. POST /api/super-affiliate/bridge-all (Bulk)
+router.post("/super-affiliate/bridge-all", async (req, res) => {
+  try {
+    const superAffiliates = await Admin.find({ role: "super-affiliate" });
+    if (superAffiliates.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No super affiliates found" });
+    }
+
+    const results = [];
+
+    for (const aff of superAffiliates) {
+      let {
+        _id,
+        username,
+        gameWinCommissionBalance = 0,
+        gameLossCommissionBalance = 0,
+        depositCommissionBalance = 0,
+        referCommissionBalance = 0,
+      } = aff;
+
+      const positiveSum =
+        gameLossCommissionBalance +
+        depositCommissionBalance +
+        referCommissionBalance;
+      const result = positiveSum - gameWinCommissionBalance;
+
+      if (result <= 0) {
+        results.push({
+          id: _id,
+          username,
+          status: "skipped",
+          reason: "No positive balance after subtracting gameWin",
+        });
+        continue;
+      }
+
+      const share = result / 3;
+
+      const updated = await Admin.findByIdAndUpdate(
+        _id,
+        {
+          $set: {
+            gameWinCommissionBalance: 0,
+            gameLossCommissionBalance: share,
+            depositCommissionBalance: share,
+            referCommissionBalance: share,
+          },
+        },
+        { new: true },
+      );
+
+      results.push({
+        id: _id,
+        username,
+        status: "success",
+        subtractedFromWin: gameWinCommissionBalance.toFixed(2),
+        result: result.toFixed(2),
+        sharePerBalance: share.toFixed(2),
+        newBalances: {
+          gameWin: 0,
+          gameLoss: updated.gameLossCommissionBalance.toFixed(2),
+          deposit: updated.depositCommissionBalance.toFixed(2),
+          refer: updated.referCommissionBalance.toFixed(2),
+        },
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Bridge processed for ${results.filter((r) => r.status === "success").length} users`,
+      results,
+    });
+  } catch (err) {
+    console.error("Bulk bridge error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error during bulk bridge" });
+  }
+});
+
+// 1. POST /api/master-affiliate/bridge/:id
+router.post("/master-affiliate/bridge/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const masterAff = await Admin.findOne({
+      _id: id,
+      role: "master-affiliate",
+    });
+    if (!masterAff) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Master Affiliate not found" });
+    }
+
+    let {
+      gameWinCommissionBalance = 0,
+      gameLossCommissionBalance = 0,
+      depositCommissionBalance = 0,
+      referCommissionBalance = 0,
+    } = masterAff;
+
+    const positiveSum =
+      gameLossCommissionBalance +
+      depositCommissionBalance +
+      referCommissionBalance;
+    const result = positiveSum - gameWinCommissionBalance;
+
+    if (result <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No positive balance after subtracting gameWin (result ≤ 0)",
+      });
+    }
+
+    const share = result / 3;
+
+    const updated = await Admin.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          gameWinCommissionBalance: 0,
+          gameLossCommissionBalance: share,
+          depositCommissionBalance: share,
+          referCommissionBalance: share,
+        },
+      },
+      { new: true },
+    );
+
+    res.json({
+      success: true,
+      message: "Bridge completed for Master Affiliate",
+      data: {
+        previous: {
+          gameWin: gameWinCommissionBalance.toFixed(2),
+          gameLoss: gameLossCommissionBalance.toFixed(2),
+          deposit: depositCommissionBalance.toFixed(2),
+          refer: referCommissionBalance.toFixed(2),
+        },
+        result: result.toFixed(2),
+        sharePerBalance: share.toFixed(2),
+        newBalances: {
+          gameWin: 0,
+          gameLoss: updated.gameLossCommissionBalance.toFixed(2),
+          deposit: updated.depositCommissionBalance.toFixed(2),
+          refer: updated.referCommissionBalance.toFixed(2),
+        },
+      },
+    });
+  } catch (err) {
+    console.error("Master Bridge error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// 2. POST /api/master-affiliate/bridge-all
+router.post("/master-affiliate/bridge-all", async (req, res) => {
+  try {
+    const masterAffiliates = await Admin.find({ role: "master-affiliate" });
+    if (masterAffiliates.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No master affiliates found" });
+    }
+
+    const results = [];
+
+    for (const aff of masterAffiliates) {
+      let {
+        _id,
+        username,
+        gameWinCommissionBalance = 0,
+        gameLossCommissionBalance = 0,
+        depositCommissionBalance = 0,
+        referCommissionBalance = 0,
+      } = aff;
+
+      const positiveSum =
+        gameLossCommissionBalance +
+        depositCommissionBalance +
+        referCommissionBalance;
+      const result = positiveSum - gameWinCommissionBalance;
+
+      if (result <= 0) {
+        results.push({
+          id: _id,
+          username,
+          status: "skipped",
+          reason: "No positive balance after subtracting gameWin",
+        });
+        continue;
+      }
+
+      const share = result / 3;
+
+      const updated = await Admin.findByIdAndUpdate(
+        _id,
+        {
+          $set: {
+            gameWinCommissionBalance: 0,
+            gameLossCommissionBalance: share,
+            depositCommissionBalance: share,
+            referCommissionBalance: share,
+          },
+        },
+        { new: true },
+      );
+
+      results.push({
+        id: _id,
+        username,
+        status: "success",
+        result: result.toFixed(2),
+        sharePerBalance: share.toFixed(2),
+        newBalances: {
+          gameWin: 0,
+          gameLoss: updated.gameLossCommissionBalance.toFixed(2),
+          deposit: updated.depositCommissionBalance.toFixed(2),
+          refer: updated.referCommissionBalance.toFixed(2),
+        },
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Bridge processed for ${results.filter((r) => r.status === "success").length} master affiliates`,
+      results,
+    });
+  } catch (err) {
+    console.error("Bulk Master Bridge error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error during bulk bridge" });
   }
 });
 

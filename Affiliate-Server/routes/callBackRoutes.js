@@ -1,7 +1,7 @@
 // routes/callback.js
 import express from "express";
 import Admin from "../models/Admin.js";
-import DepositTurnover from "../models/DepositTurnover.js"; // ← নতুন import যোগ করো
+import DepositTurnover from "../models/DepositTurnover.js";
 import mongoose from "mongoose";
 
 const router = express.Router();
@@ -20,7 +20,7 @@ router.post("/", async (req, res) => {
       times,
     } = req.body;
 
-    console.log("Callback received ->", {
+    console.log("Callback received →", {
       account_id,
       username,
       provider_code,
@@ -38,7 +38,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // Trim username
+    // Trim username (আপনার আগের লজিক)
     username = username.substring(0, 45);
     username = username.substring(0, username.length - 2);
 
@@ -50,7 +50,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    console.log("Matched player ID ->", player._id);
+    console.log("Matched player ID →", player._id);
 
     const amountFloat = parseFloat(amount);
     if (isNaN(amountFloat)) {
@@ -60,8 +60,11 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // Determine if player lost money
+    // ────────────────────────────────────────────────
+    // Player net change & win/loss determination
+    // ────────────────────────────────────────────────
     let isPlayerLoss = false;
+    let isPlayerWin = false;
     let playerNetChange = 0;
 
     if (bet_type === "BET") {
@@ -69,9 +72,14 @@ router.post("/", async (req, res) => {
       isPlayerLoss = true;
     } else if (bet_type === "SETTLE") {
       playerNetChange = amountFloat;
-      if (amountFloat <= 0) isPlayerLoss = true;
-    } else {
-      isPlayerLoss = false;
+
+      if (amountFloat > 0) {
+        isPlayerWin = true;
+      } else if (amountFloat < 0) {
+        isPlayerLoss = true;
+      } else {
+        // amount === 0 → push/cancel, commission নেই
+      }
     }
 
     const gameRecord = {
@@ -83,7 +91,7 @@ router.post("/", async (req, res) => {
       transaction_id: transaction_id || null,
       verification_key: verification_key || null,
       times: times || null,
-      status: bet_type === "SETTLE" && amountFloat > 0 ? "won" : "lost",
+      status: isPlayerWin ? "won" : isPlayerLoss ? "lost" : "push",
       createdAt: new Date(),
     };
 
@@ -107,12 +115,9 @@ router.post("/", async (req, res) => {
     }
 
     // ────────────────────────────────────────────────
-    // ── NEW: Turnover পূরণ লজিক ──
+    // Turnover logic (BET & SETTLE উভয় ক্ষেত্রেই)
     // ────────────────────────────────────────────────
-    // শুধুমাত্র BET বা SETTLE-এর ক্ষেত্রে turnover update করব
-    // এবং শুধু active turnover-এ (remaining > 0)
     if (["BET", "SETTLE"].includes(bet_type)) {
-      // Active turnover খুঁজে বের করা (সবচেয়ে পুরোনো active-টা প্রথমে update করা ভালো)
       const activeTurnover = await DepositTurnover.findOne({
         user: player._id,
         status: "active",
@@ -120,22 +125,16 @@ router.post("/", async (req, res) => {
       }).sort({ activatedAt: 1 }); // oldest first
 
       if (activeTurnover) {
-        // এখানে amountFloat হচ্ছে bet amount (BET-এ negative, SETTLE-এ positive)
-        // কিন্তু turnover-এ সাধারণত **bet amount** (যে টাকা বাজি ধরা হয়েছিল) যোগ হয়
-        // তাই আমরা absolute value নিবো
+        // Turnover-এ সাধারণত **bet amount** (stake) যোগ হয়
         const betAmountForTurnover = Math.abs(amountFloat);
 
-        // completedTurnover বাড়ানো
         const newCompleted =
           activeTurnover.completedTurnover + betAmountForTurnover;
-
-        // remaining হিসাব
         const newRemaining = Math.max(
           0,
           activeTurnover.requiredTurnover - newCompleted,
         );
 
-        // status update
         let newStatus = activeTurnover.status;
         let completedAt = activeTurnover.completedAt;
 
@@ -144,7 +143,6 @@ router.post("/", async (req, res) => {
           completedAt = new Date();
         }
 
-        // Atomic update
         await DepositTurnover.findByIdAndUpdate(activeTurnover._id, {
           $set: {
             completedTurnover: newCompleted,
@@ -155,56 +153,54 @@ router.post("/", async (req, res) => {
         });
 
         console.log(
-          `Turnover updated → User: ${username} | Bet/Settled: ৳${betAmountForTurnover} | Completed: ${newCompleted} / ${activeTurnover.requiredTurnover} | Remaining: ${newRemaining}`,
+          `Turnover updated → User: ${username} | Bet/Settled: ৳${betAmountForTurnover} | Completed: ${newCompleted}/${activeTurnover.requiredTurnover} | Remaining: ${newRemaining}`,
         );
 
-        // Optional: যদি completed হয়ে যায় তাহলে notification বা log
         if (newStatus === "completed") {
-          console.log(
-            `Turnover COMPLETED for user ${username}! Required: ৳${activeTurnover.requiredTurnover}`,
-          );
+          console.log(`Turnover COMPLETED for user ${username}!`);
         }
-      } else {
-        console.log(`No active turnover found for user ${username}`);
       }
     }
 
-    // === Multi-Level Game Loss Commission Logic ===
+    // ────────────────────────────────────────────────
+    // GAME LOSS COMMISSION (আগের মতো)
+    // ────────────────────────────────────────────────
     if (isPlayerLoss && player.referredBy) {
-      const lossAmount = Math.abs(playerNetChange);
+      const lossAmount = Math.abs(playerNetChange); // positive loss amount
 
-      const referrer = await Admin.findById(player.referredBy);
-      if (referrer && referrer.gameLossCommission > 0) {
-        const masterRate = referrer.gameLossCommission / 100;
+      // Master Affiliate (direct referrer)
+      const master = await Admin.findById(player.referredBy);
+      if (master && master.gameLossCommission > 0) {
+        const masterRate = master.gameLossCommission / 100;
         const masterCommission = lossAmount * masterRate;
 
         if (masterCommission > 0) {
-          await Admin.findByIdAndUpdate(referrer._id, {
+          await Admin.findByIdAndUpdate(master._id, {
             $inc: { gameLossCommissionBalance: masterCommission },
           });
           console.log(
-            `Master Commission: +৳${masterCommission.toFixed(2)} → ${referrer.username}`,
+            `Game Loss Commission → Master: +৳${masterCommission.toFixed(2)} to ${master.username}`,
           );
         }
 
-        if (referrer.referredBy) {
-          const superReferrer = await Admin.findById(referrer.referredBy);
-
+        // Super Affiliate (master-এর referrer)
+        if (master.referredBy) {
+          const superAff = await Admin.findById(master.referredBy);
           if (
-            superReferrer &&
-            superReferrer.role === "super-affiliate" &&
-            superReferrer.gameLossCommission > referrer.gameLossCommission
+            superAff &&
+            superAff.role === "super-affiliate" &&
+            superAff.gameLossCommission > master.gameLossCommission
           ) {
-            const superRate = superReferrer.gameLossCommission / 100;
+            const superRate = superAff.gameLossCommission / 100;
             const totalSuperCommission = lossAmount * superRate;
             const superBonus = totalSuperCommission - masterCommission;
 
             if (superBonus > 0) {
-              await Admin.findByIdAndUpdate(superReferrer._id, {
+              await Admin.findByIdAndUpdate(superAff._id, {
                 $inc: { gameLossCommissionBalance: superBonus },
               });
               console.log(
-                `Super Bonus: +৳${superBonus.toFixed(2)} → ${superReferrer.username}`,
+                `Game Loss Bonus → Super: +৳${superBonus.toFixed(2)} to ${superAff.username}`,
               );
             }
           }
@@ -212,6 +208,55 @@ router.post("/", async (req, res) => {
       }
     }
 
+    // ────────────────────────────────────────────────
+    // GAME WIN COMMISSION (নতুন যোগ করা)
+    // ────────────────────────────────────────────────
+    if (isPlayerWin && player.referredBy) {
+      const winAmount = amountFloat; // positive win amount
+
+      // Master Affiliate (direct referrer)
+      const master = await Admin.findById(player.referredBy);
+      if (master && master.gameWinCommission > 0) {
+        const masterRate = master.gameWinCommission / 100;
+        const masterCommission = winAmount * masterRate;
+
+        if (masterCommission > 0) {
+          await Admin.findByIdAndUpdate(master._id, {
+            $inc: { gameWinCommissionBalance: masterCommission },
+          });
+          console.log(
+            `Game Win Commission → Master: +৳${masterCommission.toFixed(2)} to ${master.username}`,
+          );
+        }
+
+        // Super Affiliate (master-এর referrer)
+        if (master.referredBy) {
+          const superAff = await Admin.findById(master.referredBy);
+          if (
+            superAff &&
+            superAff.role === "super-affiliate" &&
+            superAff.gameWinCommission > master.gameWinCommission
+          ) {
+            const superRate = superAff.gameWinCommission / 100;
+            const totalSuperCommission = winAmount * superRate;
+            const superBonus = totalSuperCommission - masterCommission;
+
+            if (superBonus > 0) {
+              await Admin.findByIdAndUpdate(superAff._id, {
+                $inc: { gameWinCommissionBalance: superBonus },
+              });
+              console.log(
+                `Game Win Bonus → Super: +৳${superBonus.toFixed(2)} to ${superAff.username}`,
+              );
+            }
+          }
+        }
+      }
+    }
+
+    // ────────────────────────────────────────────────
+    // Final response
+    // ────────────────────────────────────────────────
     res.json({
       success: true,
       message: "Callback processed successfully.",
