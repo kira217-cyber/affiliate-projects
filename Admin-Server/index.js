@@ -15,7 +15,7 @@ const frontendHomeControlRouter = require("./router/frontend/frontend.controll.r
 const adminHomeFooterControlRouter = require("./router/admin/admin.homeFooterControll.router");
 const adminOpayRouter = require("./router/admin/admin.opay.router");
 const PaymentMessage = require("./model/PaymentMessage");
-const Game = require("./model/game.model")
+const Game = require("./model/game.model");
 const { deleteImage } = require("./controller/ImageDelete.Controller");
 const User = require("./model/user.model");
 const qs = require("qs");
@@ -33,6 +33,11 @@ app.use(
   cors({
     origin: [
       "http://localhost:3000",
+      "https://bg444.live/",
+      "https://aff.bg444.live/",
+      "https://aff-client.bg444.live/",
+      "https://api-admin.bg444.live/",
+      "https://api-affiliate.bg444.live/",
       "http://localhost:5174",
       "http://localhost:5175",
       "http://localhost:3001",
@@ -59,7 +64,7 @@ app.use(
     ], // Allow requests from frontend
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"], // Allow specified methods
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 
 app.use(cors());
@@ -124,10 +129,10 @@ app.get("/api/v1/admin/game-stats", async (req, res) => {
   try {
     // একসাথে সব কাউন্ট করে ফেলা হচ্ছে (অনেক দ্রুত)
     const stats = await Promise.all([
-      Game.countDocuments({}),                    // Total Game
-      Game.countDocuments({ isHotGame: true }),   // Hot Game
+      Game.countDocuments({}), // Total Game
+      Game.countDocuments({ isHotGame: true }), // Hot Game
       Game.countDocuments({ isLobbyGame: true }), // Lobby Game
-      Game.countDocuments({ isNewGame: true }),   // New Game
+      Game.countDocuments({ isNewGame: true }), // New Game
     ]);
 
     const [totalGames, hotGames, lobbyGames, newGames] = stats;
@@ -173,7 +178,6 @@ app.get("/api/v1/admin/game-stats", async (req, res) => {
   }
 });
 
-
 // GET total amount sum
 app.get("/api/v1/admin/total-amount/opay", async (req, res) => {
   try {
@@ -200,7 +204,6 @@ app.get("/api/v1/admin/total-amount/opay", async (req, res) => {
     });
   }
 });
-
 
 // GET today's total amount
 app.get("/api/v1/admin/today-total/opay", async (req, res) => {
@@ -241,14 +244,11 @@ app.get("/api/v1/admin/today-total/opay", async (req, res) => {
   }
 });
 
-
-
 // এই API টা কল করলে গেম লোড হবে → POST /api/playgame
 app.post("/playgame", async (req, res) => {
   try {
     const { gameID, username, money } = req.body;
 
-   
     console.log("PlayGame Request Body:", req.body);
 
     // if (!gameID || !username || !money) {
@@ -268,8 +268,8 @@ app.post("/playgame", async (req, res) => {
 
     // api.tk999.oracelsoft.com
     const postData = {
-      home_url: "https://api.tk999.oracelsoft.com",
-      token: "5f4e59f09dc1a061cdb5185ceef6e75b",
+      home_url: "https://bg444.live",
+      token: "3cb1f558a4b194101105e9c1e8d59cbf",
       username: username + "45", // চাইলে random করতে পারো
       money: money,
       gameid: gameID,
@@ -286,7 +286,7 @@ app.post("/playgame", async (req, res) => {
           "Content-Type": "application/x-www-form-urlencoded",
           "x-dstgame-key": postData.token,
         },
-      }
+      },
     );
 
     // DST থেকে যে URL আসবে সেটা frontend এ পাঠাচ্ছি

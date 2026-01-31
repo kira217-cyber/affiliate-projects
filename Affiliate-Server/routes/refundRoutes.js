@@ -61,12 +61,12 @@ router.post("/", async (req, res) => {
     // ────────────────────────────────────────────────
     // নতুন কন্ডিশন: শুধুমাত্র bet_type === "REFUND" হলেই প্রসেস করবে
     // ────────────────────────────────────────────────
-    if (bet_type !== "REFUND") {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid bet_type for refund endpoint. Expected "REFUND", received "${bet_type}"`,
-      });
-    }
+    // if (bet_type !== "REFUND") {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: `Invalid bet_type for refund endpoint. Expected "REFUND", received "${bet_type}"`,
+    //   });
+    // }
 
     // ────────────────────────────────────────────────
     // Player net change: Refund হিসেবে +amount
