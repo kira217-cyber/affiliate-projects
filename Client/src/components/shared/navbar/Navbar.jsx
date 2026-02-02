@@ -169,7 +169,7 @@ const Navbar = ({ onMenuClick, isSidebarOpen }) => {
                 src={
                   adminHomeControl?.websiteLogoWhite
                     ? `${import.meta.env.VITE_BACKEND_API}uploads/${adminHomeControl.websiteLogoWhite}`
-                    : logo // fallback to your static import
+                    : "" // fallback to your static import
                 }
                 alt="Website Logo"
               />

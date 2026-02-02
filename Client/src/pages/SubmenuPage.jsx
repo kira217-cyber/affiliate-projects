@@ -2,10 +2,11 @@ import MarqueeSlider from "@/components/home/Marque/MarqueeSlider";
 import { fetchHomeGameMenu } from "@/features/home-game-menu/GameHomeMenuSliceAndThunks";
 import { baseURL_For_IMG_UPLOAD } from "@/utils/baseURL";
 const IMAGE_BASE = "https://apigames.oracleapi.net";
+
 import { useEffect, useRef, useState, useContext } from "react";
 import { BsFire } from "react-icons/bs";
 import { useDispatch, useSelector } from "react-redux";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom"; // ← added useNavigate
 import styled from "styled-components";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
@@ -24,18 +25,15 @@ const IconContainer = styled.div`
   padding: 0px 2px;
   margin-bottom: 0;
   align-items: flex-end;
-
   img {
     width: 4rem;
     height: 2rem;
     object-fit: contain;
     border-radius: 0.25rem;
   }
-
   @media (min-width: 1024px) {
     font-size: 1.25rem;
     margin-bottom: 0.25rem;
-
     img {
       width: 4rem;
       height: 1.25rem;
@@ -68,9 +66,7 @@ const MenuItem = styled.div`
     isSelected
       ? "0 1px 0 0 #b64100, inset 0 1px 0 1px #fff2a6"
       : "0 1px 0 0 #005540"};
-
   color: ${({ isSelected }) => (isSelected ? "#000" : "#fff")};
-
   &:hover {
     background: ${({ isSelected }) =>
       isSelected
@@ -90,11 +86,9 @@ const SwiperContainer = styled.div`
   overflow: hidden;
   position: relative;
   z-index: 10;
-
   .swiper {
     height: 100%;
   }
-
   .swiper-slide {
     display: flex;
     align-items: center;
@@ -105,23 +99,26 @@ const SwiperContainer = styled.div`
 
 const SubmenuPage = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate(); // ← added
   const swiperRef = useRef(null);
-  const { language } = useContext(AuthContext);
+  const { submenu } = useParams();
+  const { language, user } = useContext(AuthContext);
+
   const [selectedItem, setSelectedItem] = useState({
     label: language === "bn" ? "সব" : "All",
     id: "1",
   });
+
   const [categoryGame, setCategoryGame] = useState([]);
-  const { submenu } = useParams();
   const [category, setCategory] = useState(null);
   const [gameInitData, setGameInitData] = useState([]);
   const [subOption, setSubOption] = useState([]);
+
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   const { homeGameMenu } = useSelector((state) => state.homeGameMenu || {});
   const { data } = useSelector((state) => state.gameSection || {});
-  const { user } = useSelector((state) => state.auth || {});
 
   useEffect(() => {
     dispatch(fetchHomeGameMenu());
@@ -189,16 +186,14 @@ const SubmenuPage = () => {
     }
   }, [selectedItem, gameInitData]);
 
-  // Auto-shine effect (same as GameCard)
+  // Auto-shine effect
   useEffect(() => {
     if (categoryGame.length === 0) return;
-
     let animationFrameId = null;
     let timeoutId = null;
 
     const triggerShine = () => {
       const cards = document.querySelectorAll(".auto-shine");
-
       cards.forEach((card) => {
         if (card instanceof HTMLElement) {
           card.classList.remove("shine-animate");
@@ -227,6 +222,18 @@ const SubmenuPage = () => {
     };
   }, [categoryGame.length]);
 
+  // Changed: navigate to PlayGame route instead of handling launch here
+  const handlePlayGame = (game) => {
+    if (!user) {
+      setShowRegisterModal(true);
+      return;
+    }
+
+    // Navigate to the dedicated game play page
+    navigate(`/liveGame/${game._id}`);
+  };
+
+  // Normal submenu view (no loading/error/iframe states anymore)
   return (
     <div className="px-1 sm:px-4 submenu-page-container">
       <MarqueeSlider />
@@ -307,102 +314,84 @@ const SubmenuPage = () => {
           </SwiperContainer>
         </div>
 
-        {/* Game Grid with Updated Image Logic */}
+        {/* Game Grid */}
         <div className="grid grid-cols-3 md:grid-cols-5 gap-4 mt-2">
-          {categoryGame?.map((game, index) => {
-            return (
-              <div
-                key={game._id || index}
-                className="relative group overflow-hidden rounded-lg xl:rounded-xl shadow-2xl cursor-pointer transition-all duration-500 hover:scale-105 auto-shine"
-                style={{
-                  aspectRatio: "3/4",
-                  background: "linear-gradient(135deg, #0a3d42, #001f24)",
-                  boxShadow: "0 8px 20px rgba(0, 255, 200, 0.15)",
+          {categoryGame?.map((game, index) => (
+            <div
+              key={game._id || index}
+              className="relative group overflow-hidden rounded-lg xl:rounded-xl shadow-2xl cursor-pointer transition-all duration-500 hover:scale-105 auto-shine"
+              style={{
+                aspectRatio: "3/4",
+                background: "linear-gradient(135deg, #0a3d42, #001f24)",
+                boxShadow: "0 8px 20px rgba(0, 255, 200, 0.15)",
+              }}
+              onClick={() => handlePlayGame(game)}
+            >
+              <div className="shine-layer"></div>
+              <img
+                src={(() => {
+                  if (game?.image && game.image !== "") {
+                    return `${import.meta.env.VITE_BACKEND_API}uploads/${game.image}`;
+                  }
+                  const docs =
+                    game?.apiData?.projectImageDocs ||
+                    game?.projectImageDocs ||
+                    [];
+                  const match = docs.find(
+                    (d) => d?.projectName?.title === "Tk999" && d?.image,
+                  );
+                  const imgPath = match?.image || game?.apiData?.image || "";
+                  return imgPath
+                    ? `${IMAGE_BASE}/${imgPath}`
+                    : "/placeholder-game.png";
+                })()}
+                alt={game?.apiData?.name || game?.name || "Game"}
+                className="w-full h-full object-cover rounded-lg xl:rounded-xl transition-transform duration-500 group-hover:scale-110 group-hover:blur-[2px]"
+                onError={(e) => {
+                  e.target.src = "/placeholder-game.png";
                 }}
-              >
-                <div className="shine-layer"></div>
+              />
 
-                <img
-                  src={(() => {
-                    // প্রথমে কাস্টম ইমেজ চেক (GameControl থেকে সেভ করা)
-                    if (game?.image && game.image !== "") {
-                      return `${import.meta.env.VITE_BACKEND_API}uploads/${game.image}`;
-                    }
+              {game?.showHeart && (
+                <Link
+                  to={game?.heartLink || "#"}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="absolute top-2 right-2 bg-[#ffffff45] bg-opacity-80 rounded-full p-1">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-white"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
+                  </div>
+                </Link>
+              )}
 
-                    // তারপর Tk999 প্রজেক্ট ইমেজ
-                    const docs =
-                      game?.apiData?.projectImageDocs ||
-                      game?.projectImageDocs ||
-                      [];
-                    const match = docs.find(
-                      (d) => d?.projectName?.title === "Tk999" && d?.image,
-                    );
-                    const imgPath = match?.image || game?.apiData?.image || "";
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity duration-500 px-2">
+                <div className="py-2 px-4 text-sm md:text-base font-bold text-[#b64100] bg-[#ffd900] rounded-lg shadow-lg transform scale-90 group-hover:scale-100 transition-transform duration-300">
+                  {game.playText || "PLAY NOW"}
+                </div>
 
-                    return imgPath
-                      ? `${IMAGE_BASE}/${imgPath}`
-                      : "/placeholder-game.png";
-                  })()}
-                  alt={game?.apiData?.name || game?.name || "Game"}
-                  className="w-full h-full object-cover rounded-lg xl:rounded-xl transition-transform duration-500 group-hover:scale-110 group-hover:blur-[2px]"
-                  onError={(e) => {
-                    e.target.src = "/placeholder-game.png";
-                  }}
-                />
-
-                {game?.showHeart && (
-                  <Link to={game?.heartLink || "#"}>
-                    <div className="absolute top-2 right-2 bg-[#ffffff45] bg-opacity-80 rounded-full p-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5 text-white"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                      </svg>
+                {game?.freeTrialLink && (
+                  <Link
+                    to={game.freeTrialLink}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="mt-2 py-2 px-4 text-sm md:text-base font-bold text-[#b64100] bg-[#ffd900] rounded-lg shadow-lg transform scale-90 group-hover:scale-100 transition-transform duration-300">
+                      {game.trialText || "Free Trial"}
                     </div>
                   </Link>
                 )}
 
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity duration-500 px-2">
-                  {!user ? (
-                    <button onClick={() => setShowRegisterModal(true)}>
-                      <div className="py-2 px-4 text-sm md:text-base font-bold text-[#b64100] bg-[#ffd900] rounded-lg shadow-lg transform scale-90 group-hover:scale-100 transition-transform duration-300">
-                        {game.playText || "PLAY NOW"}
-                      </div>
-                    </button>
-                  ) : (
-                    <Link to={`/liveGame/${game._id}`}>
-                      <div className="py-2 px-4 text-sm md:text-base font-bold text-[#b64100] bg-[#ffd900] rounded-lg shadow-lg transform scale-90 group-hover:scale-100 transition-transform duration-300">
-                        {game.playText || "PLAY NOW"}
-                      </div>
-                    </Link>
-                  )}
-
-                  {game?.freeTrialLink && (
-                    <Link to={game.freeTrialLink}>
-                      <div className="mt-2 py-2 px-4 text-sm md:text-base font-bold text-[#b64100] bg-[#ffd900] rounded-lg shadow-lg transform scale-90 group-hover:scale-100 transition-transform duration-300">
-                        {game.trialText || "Free Trial"}
-                      </div>
-                    </Link>
-                  )}
-
-                  <p className="mt-3 text-white text-xs md:text-sm font-semibold text-center">
-                    {game?.apiData?.name || game?.name || "Unknown Game"}
-                  </p>
-
-                  {category?.image && (
-                    <img
-                      className="w-8 mt-2"
-                      src={`${import.meta.env.VITE_BACKEND_API}uploads/${category.image}`}
-                      alt="vendor logo"
-                    />
-                  )}
-                </div>
+                <p className="mt-3 text-white text-xs md:text-sm font-semibold text-center">
+                  {game?.apiData?.name || game?.name || "Unknown Game"}
+                </p>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </div>
 

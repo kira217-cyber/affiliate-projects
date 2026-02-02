@@ -60,6 +60,11 @@ app.use(
       "http://cp666.live",
       "https://cp666.live",
       "http://cp666.live",
+      "https://api-admin.bg444.live/api/v1/admin/login",
+      "https://admin.bg444.live",
+      "http://admin.bg444.live",
+      "https://bg444.live",
+      "http://bg444.live",
       "*",
     ], // Allow requests from frontend
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"], // Allow specified methods
@@ -249,6 +254,29 @@ app.post("/playgame", async (req, res) => {
   try {
     const { gameID, username, money } = req.body;
 
+    if (!gameID || !username || !money) {
+      return res.status(400).json({
+        success: false,
+        message: "gameID, username and money are required",
+      });
+    }
+
+    console.log("Fetching game from DB with ID:", gameID);
+
+    const game = await Game.findById(gameID).lean();
+
+    // if (!game) {
+    //   return res.status(404).json({
+    //     success: false,
+    //     message: "Game not found",
+    //   });
+    // }
+
+    console.log("this is game usign my db -> ", game);
+
+    // Example: use a provider/remote id from DB if needed later
+    // const providerGameId = game.providerGameId || game.game_uuid;
+
     console.log("PlayGame Request Body:", req.body);
 
     // if (!gameID || !username || !money) {
@@ -266,13 +294,33 @@ app.post("/playgame", async (req, res) => {
     //   gameid: gameID,
     // };
 
+    // 2. gameAPIID দিয়ে API থেভে গেম ডাটা ফেচ করা
+    const gameAPIID = game.gameAPIID;
+    const { data: apiGamesResponse } = await axios.post(
+      "https://apigames.oracleapi.net/api/games/by-ids",
+      { ids: [gameAPIID] }, // একভ gameAPIID নে অ্যারেতে কনভার্ট বরা
+      {
+        headers: {
+          "x-api-key":
+            "300cc0adfcfb041c25c4a8234e3c0e312a44c7570677d64bdb983412f045da67",
+        },
+      },
+    );
+
+    const apiGames = apiGamesResponse.data || [];
+
+    // 3. API থেভে আসা গেম সাটা মার্জ লরা
+    const matchedGame = apiGames.find((apiGame) => apiGame._id === gameAPIID);
+
+    console.log("matchedGame", matchedGame);
+
     // api.tk999.oracelsoft.com
     const postData = {
       home_url: "https://bg444.live",
       token: "3cb1f558a4b194101105e9c1e8d59cbf",
       username: username + "45", // চাইলে random করতে পারো
       money: money,
-      gameid: gameID,
+      gameid: matchedGame?.game_uuid,
     };
 
     console.log(postData);

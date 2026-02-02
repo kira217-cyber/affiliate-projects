@@ -5,7 +5,7 @@ import { AuthContext } from "@/Context/AuthContext"; // Adjust path if needed
 
 const PromoBanner = () => {
   const [showBanner, setShowBanner] = useState(true);
-  const { language, user } = useContext(AuthContext); // Get language and user from AuthContext
+  const { language, user, adminHomeControl } = useContext(AuthContext); // Get language and user from AuthContext
 
   // Translation
   const t = {
@@ -29,12 +29,16 @@ const PromoBanner = () => {
       <div className="flex items-center gap-4">
         <img
           className="w-[50px] h-auto md:max-w-[10%] md:h-auto"
-          src={logo}
+          src={
+            adminHomeControl?.favicon
+              ? `${import.meta.env.VITE_BACKEND_API}uploads/${adminHomeControl.favicon}`
+              : ``
+          } // fallback if no favicon in DB}
           alt="App Logo"
         />
         <div>
           <h2 className="text-orange-400 font-bold text-[12px]">
-            {translate("appBonus")} 
+            {translate("appBonus")}
           </h2>
           <div className="flex gap-1 mt-1">
             {[...Array(4)].map((_, i) => (
@@ -47,7 +51,7 @@ const PromoBanner = () => {
       {/* Right: Download Button + Close */}
       <div className="flex items-center gap-2">
         <a
-          href="/CP66.apk"
+          href="/bg444.apk"
           download
           className="bg-yellow-400 hover:bg-yellow-500 text-red-700 font-bold px-2 py-1 rounded-lg shadow-md transition-colors"
         >

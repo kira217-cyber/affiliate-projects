@@ -128,7 +128,7 @@ const MainLayout = () => {
   useEffect(() => {
     if (adminHomeControl) {
       // Set page title
-      document.title = adminHomeControl.websiteTitle || "Jaya999";
+      document.title = adminHomeControl.websiteTitle || " ";
 
       // Set favicon
       const link =

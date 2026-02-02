@@ -1,14 +1,19 @@
 import mongoose from "mongoose";
-import gameHistory from "./GameHistory.js"
-import refundHistory from "./refundHistory.js";  // নতুন import
-import wallets from "./Wallets.js"
+import gameHistory from "./GameHistory.js";
+import refundHistory from "./refundHistory.js"; // নতুন import
+import wallets from "./Wallets.js";
 
 const adminSchema = new mongoose.Schema(
   {
     firstName: { type: String, required: false },
     lastName: { type: String, required: false },
     username: { type: String, required: true, unique: true },
-    email: { type: String, unique: true},
+    // ✅ FIX: email optional রাখলেও unique error হবে না
+    email: {
+      type: String,
+      sparse: true,
+      default: undefined, // ⭐ খুব গুরুত্বপূর্ণ
+    },
     whatsapp: { type: String, required: true },
     password: { type: String, required: true },
     role: {
@@ -34,10 +39,10 @@ const adminSchema = new mongoose.Schema(
     gameWinCommissionBalance: { type: Number, default: 0 },
     gameLossCommissionBalance: { type: Number, default: 0 },
     depositCommissionBalance: { type: Number, default: 0 },
-    referCommissionBalance : { type: Number, default: 0 },
-    gameHistory:[gameHistory],
+    referCommissionBalance: { type: Number, default: 0 },
+    gameHistory: [gameHistory],
     refundHistory: [refundHistory],
-    wallets:[wallets],
+    wallets: [wallets],
 
     pendingRequests: {
       type: [mongoose.Schema.Types.ObjectId],
@@ -45,7 +50,7 @@ const adminSchema = new mongoose.Schema(
       default: [], // এই লাইন অবশ্যই থাকতে হবে!
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 adminSchema.pre("save", function (next) {

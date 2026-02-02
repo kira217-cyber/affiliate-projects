@@ -333,7 +333,7 @@ const SidebarMenu = () => {
       label: "ডাউনলোড",
       key: "ডাউনলোড",
       icon: <BsDownload />,
-      path: "/CP66.apk",
+      path: "/bg444.apk",
       download: true,
     },
     { id: 18, label: "চ্যাট", key: "চ্যাট", icon: <BsChatDots />, path: "" },

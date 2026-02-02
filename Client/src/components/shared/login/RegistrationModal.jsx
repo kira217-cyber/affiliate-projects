@@ -108,7 +108,7 @@ const RegistrationModal = ({ onClose, openLogin, initialReferral }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="relative w-[95%] max-w-[900px] h-auto md:h-[850px] rounded-2xl overflow-hidden shadow-2xl bg-[#053a40] flex flex-col md:flex-row">
+      <div className="relative w-[95%] max-w-[900px] h-auto md:h-[650px] rounded-2xl overflow-hidden shadow-2xl bg-[#053a40] flex flex-col md:flex-row">
         {/* Close */}
         <button
           onClick={onClose}

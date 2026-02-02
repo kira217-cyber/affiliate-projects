@@ -216,7 +216,7 @@ const Footer = () => {
                 src={
                   adminHomeControl?.favicon
                     ? `${import.meta.env.VITE_BACKEND_API}uploads/${adminHomeControl.favicon}`
-                    : `${logo_footer}`
+                    : ``
                 } // fallback if no favicon in DB}
                 alt="Logo"
               />
@@ -241,7 +241,7 @@ const Footer = () => {
 
             <div className="border-b border-teal-300 flex flex-wrap justify-center md:justify-start gap-2 pb-4 mb-4">
               <Link
-                to="https://aff.bajigo.live"
+                to="https://partner.bg444.live/"
                 target="_blank"
                 rel="noreferrer"
                 className="py-1 px-4 text-lg rounded-md text-yellow-400 bg-teal-700 hidden md:block"
@@ -252,8 +252,7 @@ const Footer = () => {
                 {translate("liveChat")}
               </Link>
               <Link
-                to="https://www.facebook.com/share/1BaDECaiXE/"
-                target="_blank"
+                
                 rel="noreferrer"
                 className="flex items-center justify-center w-8 h-8 text-lg rounded-full text-white bg-blue-700"
               >
@@ -263,16 +262,14 @@ const Footer = () => {
                 <FaInstagram />
               </Link>
               <Link
-                to="https://t.me/Nurnabi2288"
-                target="_blank"
+                
                 rel="noreferrer"
                 className="flex items-center justify-center w-8 h-8 text-lg rounded-full text-white bg-blue-400"
               >
                 <FaTelegramPlane />
               </Link>
               <Link
-                to="https://wa.me/01735586058"
-                target="_blank"
+              
                 rel="noreferrer"
                 className="flex items-center justify-center w-8 h-8 text-lg rounded-full text-white bg-green-500"
               >

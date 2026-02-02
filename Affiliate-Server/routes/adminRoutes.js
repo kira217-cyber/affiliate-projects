@@ -264,22 +264,35 @@ router.post("/main/register", async (req, res) => {
   const { username, whatsapp, password, referral } = req.body;
 
   try {
-    // ইউজার আগে থেকে আছে কিনা? (email চেক বাদ দিয়েছি)
+    // ✅ Basic validation
+    if (!username || !whatsapp || !password) {
+      return res.status(400).json({ message: "Username, WhatsApp, Password required" });
+    }
+
+    // ✅ username duplicate
     const exists = await Admin.findOne({ username });
-    if (exists)
+    if (exists) {
       return res.status(400).json({ message: "Username already exists" });
+    }
+
+    // ✅ whatsapp duplicate (কারণ schema তে unique true)
+    const phoneExists = await Admin.findOne({ whatsapp });
+    if (phoneExists) {
+      return res.status(400).json({ message: "WhatsApp number already used" });
+    }
 
     let referredBy = null;
     let referrer = null;
     let newUserRole = "user";
     let superReferrer = null;
 
-    // রেফারেল কোড চেক
+    // ✅ referral check
     if (referral) {
       referrer = await Admin.findOne({ referralCode: referral });
       if (!referrer) {
         return res.status(400).json({ message: "Invalid referral code" });
       }
+
       referredBy = referrer._id;
 
       if (referrer.role === "super-affiliate") {
@@ -289,14 +302,13 @@ router.post("/main/register", async (req, res) => {
       }
     }
 
-    // পাসওয়ার্ড হ্যাশ
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    // ✅ hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // master-affiliate হলে approval দরকার
     const isActive = newUserRole === "master-affiliate" ? false : true;
 
-    // নতুন ইউজার তৈরি (email ফিল্ড বাদ)
+    // ✅ Create user (email purposely বাদ)
     const user = new Admin({
       username,
       whatsapp,
@@ -304,21 +316,27 @@ router.post("/main/register", async (req, res) => {
       role: newUserRole,
       referredBy,
       isActive,
+      // email: undefined, // দরকার নাই, schema default undefined
     });
 
     const savedUser = await user.save();
 
-    // === রেফার বোনাস লজিক (একই রাখা হয়েছে) ===
+    // === referral bonus logic (same as your logic) ===
     if (referredBy && referrer) {
       const updateReferrer = { $push: { createdUsers: savedUser._id } };
+
       if (newUserRole === "master-affiliate") {
+        // ⚠️ note: তোমার আগের কোডে updateReferrer.$push.pendingRequests = ...
+        // এটা ভুল structure, ঠিকটা নিচে:
         updateReferrer.$push.pendingRequests = savedUser._id;
       }
+
       await Admin.findByIdAndUpdate(referredBy, updateReferrer);
 
       // শুধু Master Affiliate → User রেজিস্ট্রেশনে বোনাস
       if (newUserRole === "user" && referrer.role === "master-affiliate") {
         const referBonus = referrer.referCommission || 0;
+
         if (referBonus > 0) {
           // ১. Master Affiliate কে বোনাস
           await Admin.findByIdAndUpdate(referredBy, {
@@ -328,10 +346,11 @@ router.post("/main/register", async (req, res) => {
           // ২. Super Affiliate কে বাকি অংশ
           if (referrer.referredBy) {
             superReferrer = await Admin.findById(referrer.referredBy);
+
             if (superReferrer && superReferrer.role === "super-affiliate") {
               const superBonusAmount = superReferrer.referCommission || 0;
               const superReferBonus = superBonusAmount - referBonus;
-              console.log("Super bonus:", superReferBonus);
+
               if (superReferBonus > 0) {
                 await Admin.findByIdAndUpdate(superReferrer._id, {
                   $inc: { referCommissionBalance: superReferBonus },
@@ -343,8 +362,8 @@ router.post("/main/register", async (req, res) => {
       }
     }
 
-    // সাকসেস রেসপন্স (email বাদ)
-    res.status(201).json({
+    // ✅ success response
+    return res.status(201).json({
       message: "Registration successful",
       user: {
         id: savedUser._id,
@@ -357,9 +376,17 @@ router.post("/main/register", async (req, res) => {
     });
   } catch (err) {
     console.error("Register error:", err);
-    res.status(500).json({ message: err.message || "Server error" });
+
+    // ✅ nice duplicate error message
+    if (err?.code === 11000) {
+      const field = Object.keys(err.keyPattern || {})[0] || "field";
+      return res.status(400).json({ message: `${field} already exists` });
+    }
+
+    return res.status(500).json({ message: err.message || "Server error" });
   }
 });
+
 
 // POST /login
 router.post("/login", async (req, res) => {

@@ -2,13 +2,14 @@ import { useEffect, useState, useRef, useContext } from "react";
 import { baseURL, baseURL_For_IMG_UPLOAD } from "@/utils/baseURL";
 // Use fixed CDN/API base for game images
 const IMAGE_BASE = "https://apigames.oracleapi.net";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // ← added useNavigate
 import Modal from "@/components/home/modal/Modal";
 import Login from "@/components/shared/login/Login";
 import RegistrationModal from "@/components/shared/login/RegistrationModal";
 import { AuthContext } from "@/Context/AuthContext";
 
 export default function AnimationBanner({ data }) {
+  const navigate = useNavigate(); // ← added for navigation to liveGame
   const [gamesData, setGamesData] = useState([]);
   const [counter, setCounter] = useState(123456789); // Initial number
   const reelRefs = useRef([]); // Refs for each reel
@@ -39,7 +40,7 @@ export default function AnimationBanner({ data }) {
 
         setBannerData({
           titleBD: data.titleBD || "জ্যাকপট",
-          titleEN: data.titleEN || "JACKPOT", // assuming backend may send english too
+          titleEN: data.titleEN || "JACKPOT",
           titleColor: data.titleColor || "#FFFF00",
           bannerBackgroundColor: data.bannerBackgroundColor || "#012632",
           numberBackgroundColor: data.numberBackgroundColor || "#FFFFFF",
@@ -167,6 +168,15 @@ export default function AnimationBanner({ data }) {
   const displayTitle =
     language === "bn" ? bannerData.titleBD : bannerData.titleEN;
 
+  // Handle game click → navigate to liveGame/:id
+  const handlePlayGame = (game) => {
+    if (!user) {
+      setShowRegisterModal(true);
+      return;
+    }
+    navigate(`/liveGame/${game._id}`);
+  };
+
   return (
     <div
       className="h-full w-full max-w-5xl mx-auto rounded-xl overflow-hidden flex flex-col md:grid md:grid-cols-12 banner-container"
@@ -287,7 +297,8 @@ export default function AnimationBanner({ data }) {
             {duplicatedGames.map((game, index) => (
               <div
                 key={`${game?.name}-${index}`}
-                className="relative group overflow-hidden rounded-lg shadow-md w-[130px] h-[176px] flex-shrink-0 mx-1"
+                className="relative group overflow-hidden rounded-lg shadow-md w-[130px] h-[176px] flex-shrink-0 mx-1 cursor-pointer"
+                onClick={() => handlePlayGame(game)} // ← changed to navigate
               >
                 {(() => {
                   // প্রথমে কাস্টম ইমেজ চেক (GameControl থেকে সেভ করা)
@@ -328,7 +339,10 @@ export default function AnimationBanner({ data }) {
                 })()}
 
                 {game.showHeart && (
-                  <Link to={game.heartLink || "#"}>
+                  <Link
+                    to={game.heartLink || "#"}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="absolute top-1 right-1 bg-[#ffffff45] bg-opacity-80 rounded-full p-0.5">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -336,39 +350,33 @@ export default function AnimationBanner({ data }) {
                         fill="currentColor"
                         viewBox="0 0 24 24"
                       >
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                       </svg>
                     </div>
                   </Link>
                 )}
+
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-700 px-1 uppercase">
-                  <Link to={game.link}>
-                    <div
-                      className="py-0.5 px-1 text-[8px] font-bold text-[#b64100] bg-[#ffd900] rounded-md mb-1 transform scale-50 group-hover:scale-100 group-hover:py-1 group-hover:px-2 group-hover:text-[10px] transition-all duration-700 ease-in-out"
-                      onClick={() => !user && setShowRegisterModal(true)}
-                    >
-                      {game.playText ||
-                        (language === "bn" ? "এখন খেলুন" : "PLAY NOW")}
-                    </div>
-                  </Link>
+                  <div className="py-0.5 px-1 text-[8px] font-bold text-[#b64100] bg-[#ffd900] rounded-md mb-1 transform scale-50 group-hover:scale-100 group-hover:py-1 group-hover:px-2 group-hover:text-[10px] transition-all duration-700 ease-in-out">
+                    {game.playText ||
+                      (language === "bn" ? "এখন খেলুন" : "PLAY NOW")}
+                  </div>
+
                   {game.freeTrialLink && (
-                    <Link to={game.freeTrialLink}>
+                    <Link
+                      to={game.freeTrialLink}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div className="py-0.5 px-1 text-[8px] font-bold text-[#b64100] bg-[#ffd900] rounded-md mb-1 transform scale-50 group-hover:scale-100 group-hover:py-1 group-hover:px-2 group-hover:text-[10px] transition-all duration-700 ease-in-out">
                         {game.trialText ||
                           (language === "bn" ? "ফ্রি ট্রায়াল" : "Free Trial")}
                       </div>
                     </Link>
                   )}
+
                   <p className="text-white text-[10px] font-semibold text-center line-clamp-2">
                     {game?.name}
                   </p>
-                  {parentMenu?.image && (
-                    <img
-                      className="w-4 mt-1"
-                      src={`${baseURL_For_IMG_UPLOAD}s/${parentMenu?.image}`}
-                      alt="vendor logo"
-                    />
-                  )}
                 </div>
               </div>
             ))}
