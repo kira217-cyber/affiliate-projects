@@ -142,6 +142,11 @@ export default function UserDetailsEditProfile({ onCancel }) {
       if (!payload.password?.trim()) {
         delete payload.password;
       }
+      
+      // 📧 EMAIL FIX (🔥 VERY IMPORTANT)
+      if (!payload.email || payload.email.trim() === "") {
+        delete payload.email;
+      }
 
       await axios.put(`${API_URL}/api/users/${userId}`, payload);
 

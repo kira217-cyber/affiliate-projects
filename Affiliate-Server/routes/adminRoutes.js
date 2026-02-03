@@ -847,19 +847,24 @@ router.get("/users/:id", async (req, res) => {
 
 router.put("/users/:id", async (req, res) => {
   try {
-    const updates = req.body;
+    const updates = { ...req.body };
 
-    // Hash password only if provided and not empty
+    // 🔐 Password handle
     if (updates.password && updates.password.trim() !== "") {
       updates.password = await bcrypt.hash(updates.password, 10);
     } else {
-      delete updates.password; // Don't update password if blank
+      delete updates.password;
+    }
+
+    // 📧 Email handle (🔥 THIS IS THE FIX)
+    if (!updates.email || updates.email.trim() === "") {
+      delete updates.email; // empty হলে update করবে না
     }
 
     const updatedUser = await Admin.findByIdAndUpdate(
       req.params.id,
       { $set: updates },
-      { new: true, runValidators: true },
+      { new: true, runValidators: true }
     ).select("-password");
 
     if (!updatedUser) {

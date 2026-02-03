@@ -112,7 +112,7 @@ const Footer = () => {
           {/* Mobile Buttons */}
           <div className="flex flex-wrap gap-2 w-full justify-center mb-6 lg:hidden">
             <Link
-              to="https://aff.bajigo.live"
+              to="https://partner.bg444.live/"
               target="_blank"
               rel="noreferrer"
               className="flex-1 mb-3 min-w-[120px] flex items-center justify-center cursor-pointer px-4 py-2 text-lg font-bold rounded-md bg-[#025659] text-[#FCCF00] hover:bg-yellow-400 hover:text-yellow-700 transition-all"

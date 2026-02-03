@@ -34,6 +34,7 @@ app.use(
     origin: [
       "http://localhost:3000",
       "https://bg444.live/",
+      "https://partner.bg444.live/",
       "https://aff.bg444.live/",
       "https://aff-client.bg444.live/",
       "https://api-admin.bg444.live/",
