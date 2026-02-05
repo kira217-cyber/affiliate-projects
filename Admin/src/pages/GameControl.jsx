@@ -12,6 +12,13 @@ import {
 } from "../redux/Frontend Control/GameControl/GameControlAPI";
 import { FaTrash, FaSpinner, FaUpload } from "react-icons/fa";
 import { baseURL, baseURL_For_IMG_UPLOAD } from "../utils/baseURL";
+const BACKEND =
+  import.meta.env.VITE_REACT_APP_BACKEND_API ||
+  import.meta.env.VITE_API_URL ||
+  "";
+const UPLOADS_BASE = BACKEND.endsWith("/")
+  ? `${BACKEND}uploads/`
+  : `${BACKEND}/uploads/`;
 import axios from "axios";
 
 export default function GameControl() {
@@ -117,9 +124,6 @@ export default function GameControl() {
 
   const handleDeleteGame = async (gameId, imageFilename) => {
     try {
-      if (imageFilename) {
-        await axios.post(baseURL_For_IMG_DELETE, { filename: imageFilename });
-      }
       await dispatch(deleteGame(gameId)).unwrap();
       toast.success("Game removed!");
       dispatch(fetchGames());
@@ -269,11 +273,12 @@ export default function GameControl() {
                   : apiGamesState[game._id]?.image || "";
                 const previewSrc = previewImages[game._id];
 
-                const displayImage =
-                  previewSrc || tk999Img
-                    ? `https://apigames.oracleapi.net/${tk999Img}`
-                    : uploadedImage
-                      ? `${import.meta.env.VITE_REACT_APP_BACKEND_API}uploads/${uploadedImage}`
+                const displayImage = previewSrc
+                  ? previewSrc
+                  : uploadedImage
+                    ? `${UPLOADS_BASE}${uploadedImage}`
+                    : tk999Img
+                      ? `https://apigames.oracleapi.net/${tk999Img}`
                       : game.image
                         ? `https://apigames.oracleapi.net/${game.image}`
                         : "/placeholder-game.png";
@@ -300,9 +305,6 @@ export default function GameControl() {
                         src={displayImage}
                         alt={game.name}
                         className="w-full h-full object-cover"
-                        onError={(e) =>
-                          (e.target.src = "/placeholder-game.png")
-                        }
                       />
                     </div>
 
