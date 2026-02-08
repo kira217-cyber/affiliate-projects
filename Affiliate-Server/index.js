@@ -31,6 +31,7 @@ import depositPaymentMethodRoutes from "./routes/depositPaymentMethodRoutes.js";
 import depositPaymentTransactionRoutes from "./routes/depositPaymentTransactionRoutes.js";
 import depositBonusRoutes from "./routes/depositBonusRoutes.js";
 import refundRoutes from "./routes/refundRoutes.js";
+import oraclePayBusinessRoutes from "./routes/oraclePayBusinessRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -75,6 +76,7 @@ app.use("/api/withdraw-transaction", withdrawTransactionRoutes);
 app.use("/api/deposit-payment-method", depositPaymentMethodRoutes);
 app.use("/api/deposit", depositPaymentTransactionRoutes);
 app.use("/api/deposit-bonus", depositBonusRoutes);
+app.use("/api/oraclepay-business", oraclePayBusinessRoutes);
 
 
 // Test route

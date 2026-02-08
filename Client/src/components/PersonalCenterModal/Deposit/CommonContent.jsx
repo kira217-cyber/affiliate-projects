@@ -37,6 +37,11 @@ const CommonContent = ({
   methodName,
   opayOnlineCount,
   viewerApiKey,
+
+  // ✅ NEW (optional) props for OraclePay Instant Deposit
+  instantDeposit = false,
+  oraclePayEnabled = false,
+  onInstantDepositNow, // function from parent
 }) => {
   const { user } = useContext(AuthContext);
 
@@ -76,12 +81,16 @@ const CommonContent = ({
     e.preventDefault();
 
     // Validate amount
-    if (!selectedAmount || selectedAmount < minAmount || selectedAmount > maxAmount) {
+    if (
+      !selectedAmount ||
+      selectedAmount < minAmount ||
+      selectedAmount > maxAmount
+    ) {
       showNotification(
         language === "bn"
           ? `পরিমাণ ${minAmount} - ${maxAmount} এর মধ্যে হতে হবে`
           : `Amount must be between ${minAmount} - ${maxAmount}`,
-        "error"
+        "error",
       );
       return;
     }
@@ -90,31 +99,68 @@ const CommonContent = ({
     if (!user?._id) {
       showNotification(
         language === "bn" ? "অনুগ্রহ করে লগইন করুন" : "Please login first",
-        "error"
+        "error",
       );
       return;
     }
 
-    
+    /**
+     * ✅ NEW: Instant Deposit flow (OraclePay Business)
+     * - Design unchanged (same button)
+     * - Only logic changed when instantDeposit=true
+     */
+    if (instantDeposit) {
+      if (!oraclePayEnabled) {
+        showNotification(
+          language === "bn"
+            ? "ইনস্ট্যান্ট ডিপোজিট এখন উপলব্ধ নেই"
+            : "Instant deposit is not available right now",
+          "error",
+        );
+        return;
+      }
 
+      if (typeof onInstantDepositNow !== "function") {
+        showNotification(
+          language === "bn"
+            ? "ইনস্ট্যান্ট ডিপোজিট হ্যান্ডলার সেট করা নেই"
+            : "Instant deposit handler missing",
+          "error",
+        );
+        return;
+      }
 
-    // Special handling for Opay
+      // UI loader
+      setIsLoading(true);
+      try {
+        // parent এ OraclePay create+redirect করা আছে
+        await onInstantDepositNow();
+      } finally {
+        // redirect হলে এইটা হবে না, না হলে loader বন্ধ
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // ✅ Existing Special handling for Opay (viewer/device based) — unchanged
     if (String(selectedProcessTab).toLowerCase() === "opay") {
       if (opayOnlineCount > 0) {
         setIsLoading(true);
         const amount = selectedAmount;
         const userIdentifyAddress = userId;
-        const url = `${import.meta.env.VITE_SOCKET_IO_URL}/api/external/generate?methods=${encodeURIComponent(
-          methodName
+        const url = `${
+          import.meta.env.VITE_SOCKET_IO_URL
+        }/api/external/generate?methods=${encodeURIComponent(
+          methodName,
         )}&amount=${amount}&userIdentifyAddress=${encodeURIComponent(
-          userIdentifyAddress
+          userIdentifyAddress,
         )}`;
         const apiKey = viewerApiKey || "";
         if (!apiKey) {
           setIsLoading(false);
           showNotification(
             language === "bn" ? "API Key পাওয়া যায়নি" : "API Key missing",
-            "error"
+            "error",
           );
           return;
         }
@@ -136,7 +182,7 @@ const CommonContent = ({
                 ? "পেমেন্ট পেজ URL পাওয়া যায়নি।"
                 : "Payment page URL not found.") +
                 (data?.msg ? ` ${data.msg}` : ""),
-              "error"
+              "error",
             );
           }
         } catch (err) {
@@ -146,7 +192,7 @@ const CommonContent = ({
               ? "পেমেন্ট পেজ লোড করতে সমস্যা হয়েছে।"
               : "Failed to load payment page.") +
               (err?.message ? ` ${err.message}` : ""),
-            "error"
+            "error",
           );
         }
         return;
@@ -156,31 +202,37 @@ const CommonContent = ({
         const apiKey = viewerApiKey || "";
         if (!apiKey) {
           setIsLoading(false);
-          showNotification(language === "bn" ? "API Key পাওয়া যায়নি" : "API Key missing", "error");
+          showNotification(
+            language === "bn" ? "API Key পাওয়া যায়নি" : "API Key missing",
+            "error",
+          );
           return;
         }
         try {
-          const res = await fetch(`${import.meta.env.VITE_SOCKET_IO_URL}/api/external/support-number`, {
-            method: "GET",
-            headers: {
-              "X-API-Key": apiKey,
+          const res = await fetch(
+            `${import.meta.env.VITE_SOCKET_IO_URL}/api/external/support-number`,
+            {
+              method: "GET",
+              headers: {
+                "X-API-Key": apiKey,
+              },
             },
-          });
+          );
           const data = await res.json();
           setIsLoading(false);
           if (data?.success && data.supportNumber) {
             showNotification(
-              (language === "bn"
+              language === "bn"
                 ? `অনুগ্রহ করে সাপোর্ট নম্বরে যোগাযোগ করুন: ${data.supportNumber}`
-                : `Please contact support number: ${data.supportNumber}`),
-              "error"
+                : `Please contact support number: ${data.supportNumber}`,
+              "error",
             );
           } else {
             showNotification(
               language === "bn"
                 ? "কোনো সাপোর্ট নম্বর পাওয়া যায়নি।"
                 : "No support number found.",
-              "error"
+              "error",
             );
           }
         } catch (err) {
@@ -190,14 +242,14 @@ const CommonContent = ({
               ? "সাপোর্ট নম্বর আনতে সমস্যা হয়েছে।"
               : "Failed to fetch support number.") +
               (err?.message ? ` ${err.message}` : ""),
-            "error"
+            "error",
           );
         }
         return;
       }
     }
 
-    // Default flow: Open deposit details in popup
+    // ✅ Default flow: Open deposit details in popup (unchanged)
     const params = new URLSearchParams({
       amount: selectedAmount,
       language: language,
@@ -211,9 +263,7 @@ const CommonContent = ({
       methodNameBD: currentMethodFromDB.methodNameBD || "অজানা",
       methodImage: currentMethodFromDB.methodImage || "",
       userInputs: JSON.stringify(currentMethodFromDB.userInputs || []),
-      selectedPromotion: selectedPromotion
-        ? JSON.stringify(selectedPromotion)
-        : "",
+      selectedPromotion: selectedPromotion ? JSON.stringify(selectedPromotion) : "",
     });
 
     console.log("Opening Deposit Details with:", params.toString());
@@ -221,7 +271,7 @@ const CommonContent = ({
     const popup = window.open(
       `/deposit-details?${params.toString()}`,
       "depositPopup",
-      "width=650,height=800,scrollbars=yes,resizable=yes,left=300,top=50"
+      "width=650,height=800,scrollbars=yes,resizable=yes,left=300,top=50",
     );
 
     if (!popup) {
@@ -229,7 +279,7 @@ const CommonContent = ({
         language === "bn"
           ? "পপআপ ব্লক হয়েছে! পপআপ অনুমতি দিন।"
           : "Popup blocked! Please allow popups.",
-        "error"
+        "error",
       );
     }
   };
@@ -241,7 +291,9 @@ const CommonContent = ({
         <CustomNotification
           message={notification.message}
           type={notification.type}
-          onClose={() => setNotification({ show: false, message: "", type: "" })}
+          onClose={() =>
+            setNotification({ show: false, message: "", type: "" })
+          }
         />
       )}
 
@@ -287,7 +339,9 @@ const CommonContent = ({
             <div className="mt-4 p-4 bg-gray-100 rounded-lg text-center">
               <p className="text-lg font-semibold text-[#d60000]">
                 {language === "bn" ? "জমাসীমা:" : "Deposit Limit:"}{" "}
-                <span className="text-2xl">৳{minAmount} - ৳{maxAmount}</span>
+                <span className="text-2xl">
+                  ৳{minAmount} - ৳{maxAmount}
+                </span>
               </p>
               <p className="text-sm text-gray-600 mt-1">
                 {language === "bn" ? "জমার তথ্য: 24/24" : "Deposit Info: 24/24"}
@@ -309,7 +363,7 @@ const CommonContent = ({
         </div>
       )}
 
-      {/* Main Deposit Button */}
+      {/* Main Deposit Button (design unchanged) */}
       <div className="mt-10 text-center">
         <button
           onClick={handleApply}

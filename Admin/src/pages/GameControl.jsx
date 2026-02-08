@@ -20,25 +20,23 @@ const UPLOADS_BASE = BACKEND.endsWith("/")
   ? `${BACKEND}uploads/`
   : `${BACKEND}/uploads/`;
 import axios from "axios";
-
 export default function GameControl() {
   const dispatch = useDispatch();
   const { gameControl, isLoading, isError, errorMessage } = useSelector(
     (state) => state.gameControl,
   );
-
   const [submenuProviders, setSubmenuProviders] = useState([]);
   const [apiGames, setApiGames] = useState([]);
   const [selectedSubmenu, setSelectedSubmenu] = useState("");
   const [apiGamesState, setApiGamesState] = useState({});
   const [previewImages, setPreviewImages] = useState({});
   const [uploadingGames, setUploadingGames] = useState({});
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 50;
   const fileInputs = useRef({});
-
   const API_KEY =
     "300cc0adfcfb041c25c4a8234e3c0e312a44c7570677d64bdb983412f045da67";
-
   useEffect(() => {
     const fetchSubmenuProviders = async () => {
       try {
@@ -55,28 +53,40 @@ export default function GameControl() {
     fetchSubmenuProviders();
     dispatch(fetchGames());
   }, [dispatch]);
-
+  const fetchApiGames = async (page) => {
+    if (!selectedSubmenu) return;
+    const selected = submenuProviders.find((s) => s._id === selectedSubmenu);
+    if (!selected?.providerId) return;
+    try {
+      const response = await axios.get(
+        `https://apigames.oracleapi.net/api/games/pagination?page=${page}&limit=${limit}&provider=${selected.providerId}`,
+        { headers: { "x-api-key": API_KEY } },
+      );
+      if (response.data.success) {
+        setApiGames(response.data.data);
+        if (response.data.total) {
+          setTotalPages(Math.ceil(response.data.total / limit));
+        }
+      }
+    } catch (error) {
+      toast.error("Failed to fetch games.");
+    }
+  };
+  const loadPage = (page) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    fetchApiGames(page);
+  };
   const handleProviderChange = async (submenuId) => {
     setSelectedSubmenu(submenuId);
     setApiGames([]);
     setApiGamesState({});
     setPreviewImages({});
+    setCurrentPage(1);
+    setTotalPages(1);
     if (!submenuId) return;
-
-    const selected = submenuProviders.find((s) => s._id === submenuId);
-    if (!selected?.providerId) return;
-
-    try {
-      const response = await axios.get(
-        `https://apigames.oracleapi.net/api/games/pagination?page=1&limit=50&provider=${selected.providerId}`,
-        { headers: { "x-api-key": API_KEY } },
-      );
-      if (response.data.success) setApiGames(response.data.data);
-    } catch (error) {
-      toast.error("Failed to fetch games.");
-    }
+    await fetchApiGames(1);
   };
-
   const handleApiGameToggle = (gameAPIID, field) => {
     setApiGamesState((prev) => ({
       ...prev,
@@ -86,12 +96,9 @@ export default function GameControl() {
       },
     }));
   };
-
   const handleSaveApiGame = async (gameAPIID) => {
     if (!selectedSubmenu) return toast.error("Select a provider first.");
-
     const gameState = apiGamesState[gameAPIID] || {};
-
     try {
       await dispatch(
         createGame({
@@ -103,10 +110,8 @@ export default function GameControl() {
           image: gameState.image || "",
         }),
       ).unwrap();
-
       toast.success("Game saved!");
       dispatch(fetchGames());
-
       setApiGamesState((prev) => {
         const next = { ...prev };
         delete next[gameAPIID];
@@ -121,8 +126,7 @@ export default function GameControl() {
       toast.error("Save failed.");
     }
   };
-
-  const handleDeleteGame = async (gameId, imageFilename) => {
+  const handleDeleteGame = async (gameId) => {
     try {
       await dispatch(deleteGame(gameId)).unwrap();
       toast.success("Game removed!");
@@ -131,7 +135,6 @@ export default function GameControl() {
       toast.error("Remove failed.");
     }
   };
-
   const handleSavedToggle = async (savedGame, field) => {
     try {
       await dispatch(
@@ -146,7 +149,6 @@ export default function GameControl() {
       toast.error("Update failed.");
     }
   };
-
   const handleFileSelect = (gameId, file) => {
     if (!file || !file.type.startsWith("image/")) {
       toast.error("Please select a valid image");
@@ -155,27 +157,21 @@ export default function GameControl() {
     const previewUrl = URL.createObjectURL(file);
     setPreviewImages((prev) => ({ ...prev, [gameId]: previewUrl }));
   };
-
   const handleImageUpload = async (gameId, isSaved, savedGameId) => {
     const file = fileInputs.current[gameId]?.files?.[0];
     if (!file) return toast.error("No image selected");
-
     setUploadingGames((prev) => ({ ...prev, [gameId]: true }));
-
     try {
       const formData = new FormData();
       formData.append("image", file);
-
       const res = await axios.post(baseURL_For_IMG_UPLOAD, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
         },
       });
-
       const imageFilename = res.data?.imageUrl;
       if (!imageFilename) throw new Error("No imageUrl in response");
-
       if (isSaved && savedGameId) {
         await dispatch(
           updateGame({
@@ -189,10 +185,8 @@ export default function GameControl() {
           [gameId]: { ...prev[gameId], image: imageFilename },
         }));
       }
-
       toast.success("Image uploaded!");
       dispatch(fetchGames());
-
       if (previewImages[gameId]) URL.revokeObjectURL(previewImages[gameId]);
     } catch (err) {
       console.error(err);
@@ -202,17 +196,14 @@ export default function GameControl() {
       if (fileInputs.current[gameId]) fileInputs.current[gameId].value = "";
     }
   };
-
   const getSavedGame = (apiId) =>
     gameControl.find((g) => g.gameAPIID === apiId);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-emerald-950/20 to-black p-4 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400 mb-10 text-center">
           Featured Games Control
         </h1>
-
         {/* Provider Selection */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -235,13 +226,11 @@ export default function GameControl() {
             ))}
           </select>
         </motion.div>
-
         {/* Games Grid */}
         <div className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-md border border-emerald-800/50 rounded-2xl p-6 sm:p-8 shadow-2xl">
           <h2 className="text-2xl font-bold text-emerald-300 mb-6">
             Games from Provider
           </h2>
-
           {isLoading ? (
             <div className="flex justify-center py-12">
               <FaSpinner className="w-12 h-12 text-emerald-400 animate-spin" />
@@ -259,7 +248,6 @@ export default function GameControl() {
               {apiGames.map((game) => {
                 const saved = getSavedGame(game._id);
                 const isSaved = !!saved;
-
                 const tk999Img = (
                   saved?.projectImageDocs ||
                   game?.projectImageDocs ||
@@ -267,12 +255,10 @@ export default function GameControl() {
                 ).find(
                   (d) => d?.projectName?.title === "Tk999" && d?.image,
                 )?.image;
-
                 const uploadedImage = isSaved
                   ? saved.image
                   : apiGamesState[game._id]?.image || "";
                 const previewSrc = previewImages[game._id];
-
                 const displayImage = previewSrc
                   ? previewSrc
                   : uploadedImage
@@ -282,7 +268,6 @@ export default function GameControl() {
                       : game.image
                         ? `https://apigames.oracleapi.net/${game.image}`
                         : "/placeholder-game.png";
-
                 const isHot = isSaved
                   ? saved.isHotGame
                   : !!apiGamesState[game._id]?.isHotGame;
@@ -292,7 +277,6 @@ export default function GameControl() {
                 const isLobby = isSaved
                   ? saved.isLobbyGame
                   : !!apiGamesState[game._id]?.isLobbyGame;
-
                 return (
                   <motion.div
                     key={game._id}
@@ -307,12 +291,10 @@ export default function GameControl() {
                         className="w-full h-full object-cover"
                       />
                     </div>
-
                     <div className="p-5 space-y-4">
                       <h3 className="text-lg font-bold text-emerald-300 truncate">
                         {game.name}
                       </h3>
-
                       <div className="flex flex-col gap-2 text-sm">
                         {["isHotGame", "isNewGame", "isLobbyGame"].map(
                           (field) => (
@@ -345,7 +327,6 @@ export default function GameControl() {
                           ),
                         )}
                       </div>
-
                       <div className="flex gap-2">
                         <input
                           type="file"
@@ -357,7 +338,6 @@ export default function GameControl() {
                             if (file) handleFileSelect(game._id, file);
                           }}
                         />
-
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.97 }}
@@ -369,7 +349,6 @@ export default function GameControl() {
                             ? "Change"
                             : "Add Image"}
                         </motion.button>
-
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.97 }}
@@ -386,7 +365,6 @@ export default function GameControl() {
                           )}
                         </motion.button>
                       </div>
-
                       {!isSaved ? (
                         <motion.button
                           whileHover={{ scale: 1.05 }}
@@ -413,6 +391,31 @@ export default function GameControl() {
                   </motion.div>
                 );
               })}
+            </div>
+          )}
+          {apiGames.length > 0 && totalPages > 1 && (
+            <div className="flex justify-between items-center mt-8">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => loadPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl font-bold disabled:opacity-50 transition"
+              >
+                Previous
+              </motion.button>
+              <span className="text-emerald-300 font-bold">
+                Page {currentPage} of {totalPages}
+              </span>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => loadPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl font-bold disabled:opacity-50 transition"
+              >
+                Next
+              </motion.button>
             </div>
           )}
         </div>

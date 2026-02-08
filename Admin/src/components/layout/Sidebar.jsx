@@ -325,6 +325,7 @@ const CustomSidebar = () => {
       icon: <FaCog />,
       submenu: [
         { label: "Opay Api", icon: <FaCog />, to: "/opay/api" },
+        { label: "Opay Wallet Agent", icon: <FaCog />, to: "/opay/wallet-agent" },
         {
           label: "Device Monitoring",
           icon: <FaCog />,

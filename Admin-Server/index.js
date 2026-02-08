@@ -37,6 +37,7 @@ app.use(
       "https://partner.bg444.live/",
       "https://aff.bg444.live/",
       "https://aff-client.bg444.live/",
+      "https://apigames.oracleapi.net/api/providers",
       "https://api-admin.bg444.live/",
       "https://api-affiliate.bg444.live/",
       "http://localhost:5174",

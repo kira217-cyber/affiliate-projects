@@ -1,9 +1,6 @@
-import { useState, useEffect, useContext } from "react";
-// For redirect
+import { useState, useEffect, useContext, useMemo } from "react";
 import { useRef } from "react";
 import axios from "axios";
-// import { AuthContext } from "@/context/AuthContext"; // তোমার AuthContext
-import { baseURL, baseURL_For_IMG_UPLOAD } from "@/utils/baseURL";
 import CommonContent from "./CommonContent";
 import checkImage from "../../../assets/check.8cbcb507.svg";
 import { FaExclamationTriangle, FaRegFileAlt } from "react-icons/fa";
@@ -12,10 +9,12 @@ import { RiCustomerService2Line } from "react-icons/ri";
 import { AuthContext } from "@/Context/AuthContext";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
-// OpayDevicesPanel hidden from user view (no import needed)
+import { toast } from "react-toastify";
 
 const TabsWrapper = ({ language }) => {
-  const { userId } = useContext(AuthContext); // যদি লাগে
+  const { userId,user } = useContext(AuthContext);
+  const userName = user?.username || "User";
+  console.log("TabsWrapper render - userId:", userId, "userName:", userName);
 
   // Prevent multiple API calls
   const opayApiCalled = useRef(false);
@@ -30,8 +29,18 @@ const TabsWrapper = ({ language }) => {
   const [selectedProcessTab, setSelectedProcessTab] = useState(null);
   const [selectedPromotion, setSelectedPromotion] = useState(null);
   const [selectedAmount, setSelectedAmount] = useState(100);
+
+  // viewer key (existing opay devices system)
   const [opayOnlineCount, setOpayOnlineCount] = useState(0);
   const [viewerApiKey, setViewerApiKey] = useState(null);
+
+  // ✅ NEW: OraclePay Business enabled (admin token+active)
+  const [oraclePayEnabled, setOraclePayEnabled] = useState(false);
+
+  // ✅ NEW: Instant Deposit toggle (UI button)
+  const [instantDeposit, setInstantDeposit] = useState(false);
+
+  // existing opay enabled state (viewer-key based)
   const [opayEnabled, setOpayEnabled] = useState(false);
 
   // Fetch Deposit Methods + Promotions
@@ -43,9 +52,9 @@ const TabsWrapper = ({ language }) => {
 
         const [methodsRes, promoRes] = await Promise.all([
           axios.get(
-            `${import.meta.env.VITE_API_URL}/api/deposit-payment-method/methods`
+            `${import.meta.env.VITE_API_URL}/api/deposit-payment-method/methods`,
           ),
-          axios.get(`${import.meta.env.VITE_API_URL}/api/promotions`), // তোমার promotion API
+          axios.get(`${import.meta.env.VITE_API_URL}/api/promotions`),
         ]);
 
         const methods = methodsRes.data.success ? methodsRes.data.data : [];
@@ -54,24 +63,25 @@ const TabsWrapper = ({ language }) => {
         setDepositPaymentMethods(methods);
         setPromotions(promos);
 
-        // Auto select first method; prefer non-Opay channel to avoid disabled default
         if (methods.length > 0) {
           const first = methods[0];
           setSelectedTab(first._id);
           setMethodName(first.methodName.toLowerCase());
+
           const initialGateways = Array.isArray(first.gateway)
             ? first.gateway
             : [];
           const nonOpay = initialGateways.filter(
-            (g) => String(g).toLowerCase() !== "opay"
+            (g) => String(g).toLowerCase() !== "opay",
           );
+
           setSelectedProcessTab(nonOpay[0] || initialGateways[0] || null);
         }
       } catch (err) {
         console.error("Failed to fetch deposit data:", err);
         setError(
           err.response?.data?.msg ||
-            "Failed to load payment methods. Please try again."
+            "Failed to load payment methods. Please try again.",
         );
       } finally {
         setLoading(false);
@@ -81,21 +91,37 @@ const TabsWrapper = ({ language }) => {
     fetchData();
   }, []);
 
-  // Fetch viewer API key + active flag from backend (stored in DB)
+  // ✅ NEW: Fetch OraclePay Business status (admin token+active)
+  useEffect(() => {
+    const fetchOraclePayStatus = async () => {
+      try {
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/oraclepay-business/status`,
+        );
+        setOraclePayEnabled(!!res?.data?.data?.enabled);
+      } catch (e) {
+        setOraclePayEnabled(false);
+      }
+    };
+    fetchOraclePayStatus();
+  }, []);
+
+  // Fetch viewer API key + active flag (existing)
   useEffect(() => {
     const fetchViewerKey = async () => {
       try {
         const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_API}api/v1/frontend/opay/viewer-key`
+          `${import.meta.env.VITE_BACKEND_API}api/v1/frontend/opay/viewer-key`,
         );
         const key = res?.data?.data?.viewerApiKey || null;
         const active = !!res?.data?.data?.active;
+
         setViewerApiKey(key);
         setOpayEnabled(active && !!key);
       } catch (e) {
         console.error(
           "Failed to fetch viewer API key:",
-          e?.response?.data || e.message
+          e?.response?.data || e.message,
         );
         setViewerApiKey(null);
         setOpayEnabled(false);
@@ -104,104 +130,163 @@ const TabsWrapper = ({ language }) => {
     fetchViewerKey();
   }, []);
 
-  // Socket: connect with fetched viewer API key to count active devices
+  // Socket: connect with fetched viewer API key (existing)
   useEffect(() => {
     const SOCKET_URL = import.meta.env.VITE_SOCKET_IO_URL;
     if (!SOCKET_URL || !viewerApiKey) return;
     if (!opayEnabled) return;
+
     const s = io(SOCKET_URL, { transports: ["websocket"] });
+
     s.on("connect", () => {
       s.emit("viewer:registerApiKey", { apiKey: viewerApiKey });
     });
+
     s.on("viewer:devices", (list) => {
       if (Array.isArray(list)) {
         setOpayOnlineCount(list.filter((d) => d.active).length);
       }
     });
-    s.on("viewer:device", () => {
-      // Optional: handle individual device updates if needed later
-    });
-    return () => {
-      s.disconnect();
-    };
+
+    return () => s.disconnect();
   }, [viewerApiKey, opayEnabled]);
 
   const handleProcessTabChange = (processTab) => {
     setSelectedProcessTab(processTab);
-    setSelectedPromotion(null); // reset promotion when channel changes
+    setSelectedPromotion(null);
   };
 
   const handlePromotionChange = (promotion) => {
     setSelectedPromotion(promotion);
   };
 
-  // Build tabsData exactly like before (same logic)
-  const tabsData = depositPaymentMethods.reduce((acc, method) => {
-    const methodPromotions = promotions.filter((promo) =>
-      promo.payment_methods?.includes(method._id.toString())
-    );
+  // ✅ Instant Deposit: create payment link and redirect to OraclePay
+  const handleInstantDepositNow = async () => {
+    try {
+      if (!oraclePayEnabled) {
+        toast.error("Instant Deposit এখন Available নেই (Admin disabled)");
+        return;
+      }
 
-    let processTabs =
-      method.gateway?.map((gateway) => {
-        const gatewayPromotions = methodPromotions
-          .flatMap((promo) => {
-            if (!promo.promotion_bonuses) return [];
-            return promo.promotion_bonuses
-              .filter(
-                (bonus) =>
-                  bonus.payment_method?._id?.toString() ===
-                    method._id.toString() &&
-                  bonus.payment_method?.gateway?.includes(gateway)
-              )
-              .map((bonus) => ({
-                bn: `${promo.title_bd} (${
-                  bonus.bonus_type === "Percentage"
-                    ? `${bonus.bonus}%`
-                    : `৳${bonus.bonus}`
-                })`,
-                en: `${promo.title} (${
-                  bonus.bonus_type === "Percentage"
-                    ? `${bonus.bonus}%`
-                    : `$${bonus.bonus}`
-                })`,
-                condition: `≥৳${
-                  bonus.bonus_type === "Percentage" ? 100 : bonus.bonus
-                }`,
-                _id: `${promo._id}-${bonus.payment_method._id}-${gateway}`,
-                minAmount: bonus.minAmount || 100,
-                maxAmount: bonus.maxAmount || 10000,
-              }));
-          })
-          .filter(Boolean);
+      const amount = Number(selectedAmount);
+      if (!amount || amount < 5) {
+        toast.error("Minimum amount 5");
+        return;
+      }
 
-        return { name: gateway, promotions: gatewayPromotions };
-      }) || [];
-    // Hide Opay when disabled; ensure Opay exists only when enabled
-    const hasOpay = processTabs.some(
-      (t) => String(t.name).toLowerCase() === "opay"
-    );
-    if (!opayEnabled) {
-      processTabs = processTabs.filter(
-        (t) => String(t.name).toLowerCase() !== "opay"
+      if (!userId) {
+        toast.error("User not found. Please login again.");
+        return;
+      }
+
+      const invoiceNumber = `DEP-${userId}-${Date.now()}`;
+
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/oraclepay-business/create`,
+        {
+          amount,
+          userIdentity: userId,
+          invoiceNumber,
+          checkoutItems: {
+            type: "deposit",
+            method: "instant",
+            gateway: "oraclepay",
+          },
+        },
       );
-    } else if (!hasOpay) {
-      processTabs = [...processTabs, { name: "Opay", promotions: [] }];
+
+      if (res.data?.success && res.data?.payment_page_url) {
+        window.location.href = res.data.payment_page_url;
+        return;
+      }
+
+      toast.error(res.data?.message || "Payment link create failed");
+    } catch (e) {
+      toast.error(e?.response?.data?.message || "Payment link create failed");
     }
+  };
 
-    acc[method._id] = {
-      label: language === "bn" ? method.methodNameBD : method.methodName,
-      Image: method.methodImage,
-      processTabs,
-      amounts: method.amounts || [
-        100, 200, 500, 1000, 3000, 5000, 10000, 15000, 20000, 25000,
-      ],
-      userInputs: method.userInputs || [],
-      minAmount: method.minAmount || 100,
-      maxAmount: method.maxAmount || 25000,
-    };
+  // Build tabsData exactly like before (same logic)
+  const tabsData = useMemo(() => {
+    return depositPaymentMethods.reduce((acc, method) => {
+      const methodPromotions = promotions.filter((promo) =>
+        promo.payment_methods?.includes(method._id.toString()),
+      );
 
-    return acc;
-  }, {});
+      let processTabs =
+        method.gateway?.map((gateway) => {
+          const gatewayPromotions = methodPromotions
+            .flatMap((promo) => {
+              if (!promo.promotion_bonuses) return [];
+              return promo.promotion_bonuses
+                .filter(
+                  (bonus) =>
+                    bonus.payment_method?._id?.toString() ===
+                      method._id.toString() &&
+                    bonus.payment_method?.gateway?.includes(gateway),
+                )
+                .map((bonus) => ({
+                  bn: `${promo.title_bd} (${
+                    bonus.bonus_type === "Percentage"
+                      ? `${bonus.bonus}%`
+                      : `৳${bonus.bonus}`
+                  })`,
+                  en: `${promo.title} (${
+                    bonus.bonus_type === "Percentage"
+                      ? `${bonus.bonus}%`
+                      : `$${bonus.bonus}`
+                  })`,
+                  condition: `≥৳${
+                    bonus.bonus_type === "Percentage" ? 100 : bonus.bonus
+                  }`,
+                  _id: `${promo._id}-${bonus.payment_method._id}-${gateway}`,
+                  minAmount: bonus.minAmount || 100,
+                  maxAmount: bonus.maxAmount || 10000,
+                }));
+            })
+            .filter(Boolean);
+
+          return { name: gateway, promotions: gatewayPromotions };
+        }) || [];
+
+      // ✅ Opay tab show/hide rule:
+      // - manual opay depends on opayEnabled (viewer system)
+      // - instant deposit depends on oraclePayEnabled
+      const allowOpayTab = !!(opayEnabled || oraclePayEnabled);
+
+      const hasOpay = processTabs.some(
+        (t) => String(t.name).toLowerCase() === "opay",
+      );
+
+      if (!allowOpayTab) {
+        processTabs = processTabs.filter(
+          (t) => String(t.name).toLowerCase() !== "opay",
+        );
+      } else if (!hasOpay) {
+        processTabs = [...processTabs, { name: "Opay", promotions: [] }];
+      }
+
+      acc[method._id] = {
+        label: language === "bn" ? method.methodNameBD : method.methodName,
+        Image: method.methodImage,
+        processTabs,
+        amounts: method.amounts || [
+          100, 200, 500, 1000, 3000, 5000, 10000, 15000, 20000, 25000,
+        ],
+        userInputs: method.userInputs || [],
+        minAmount: method.minAmount || 100,
+        maxAmount: method.maxAmount || 25000,
+      };
+
+      return acc;
+    }, {});
+  }, [
+    depositPaymentMethods,
+    promotions,
+    language,
+    opayEnabled,
+    oraclePayEnabled,
+  ]);
 
   // Loading State
   if (loading) {
@@ -233,14 +318,12 @@ const TabsWrapper = ({ language }) => {
 
         {/* Right Content Skeleton */}
         <div className="lg:w-3/4 backdrop-blur-xl bg-white/50 rounded-lg shadow-lg border border-white/60 p-6">
-          {/* Header */}
           <Skeleton
             height={25}
             width="40%"
             baseColor="#E5E7EB"
             highlightColor="#F3F4F6"
           />
-
           <div className="mt-6 space-y-4">
             <Skeleton
               height={20}
@@ -261,7 +344,6 @@ const TabsWrapper = ({ language }) => {
               highlightColor="#F3F4F6"
             />
           </div>
-
           <div className="grid grid-cols-3 gap-4 mt-6">
             {[1, 2, 3].map((i) => (
               <Skeleton
@@ -272,7 +354,6 @@ const TabsWrapper = ({ language }) => {
               />
             ))}
           </div>
-
           <Skeleton
             className="mt-6"
             height={45}
@@ -305,7 +386,6 @@ const TabsWrapper = ({ language }) => {
     );
   }
 
-  // Main UI (একদিকে কোনো চেঞ্জ হয়নি – ১০০% আগের মতোই)
   return (
     <div className="flex flex-col overflow-y-auto max-h-[99vh] custom-scrollbar-hidden lg:flex-row gap-6 px-2 lg:px-6 pb-10 lg:pb-0">
       {/* Left Tabs */}
@@ -321,11 +401,18 @@ const TabsWrapper = ({ language }) => {
             onClick={() => {
               setSelectedTab(method._id);
               setMethodName(method.methodName.toLowerCase());
+
+              // keep old behavior: select first available tab (opay removed if not enabled)
+              const allowOpayTab = !!(opayEnabled || oraclePayEnabled);
+
               const availableTabs = (method.gateway || []).filter(
-                (g) => !(String(g).toLowerCase() === "opay" && !opayEnabled)
+                (g) => !(String(g).toLowerCase() === "opay" && !allowOpayTab),
               );
+
               setSelectedProcessTab(availableTabs[0] || null);
               setSelectedPromotion(null);
+
+              // instantDeposit selection remains as-is (do not auto change)
             }}
           >
             <img
@@ -345,7 +432,6 @@ const TabsWrapper = ({ language }) => {
             )}
           </div>
         ))}
-        {/* Opay section link removed as requested */}
       </div>
 
       {/* Right Content */}
@@ -377,7 +463,42 @@ const TabsWrapper = ({ language }) => {
             : "Please submit your Trx-ID after deposit for faster processing."}
         </div>
 
-        {/* Selected Method Badge */}
+        {/* ✅ NEW: Instant Deposit toggle (exactly above Selected Method Badge) */}
+        <div className="flex items-center gap-3 mb-3">
+          <button
+            type="button"
+            onClick={() => setInstantDeposit(false)}
+            className={`px-4 py-2 rounded-lg font-bold border transition-all ${
+              !instantDeposit
+                ? "bg-red-100 text-red-700 border-red-600"
+                : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
+            }`}
+          >
+            {language === "bn" ? "ম্যানুয়াল ডিপোজিট" : "Manual Deposit"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (!oraclePayEnabled) {
+                toast.error("Instant Deposit এখন Available নেই");
+                return;
+              }
+              setInstantDeposit(true);
+              // Optionally auto-select Opay tab when instant deposit chosen:
+              setSelectedProcessTab("Opay");
+            }}
+            className={`px-4 py-2 rounded-lg font-bold border transition-all ${
+              instantDeposit
+                ? "bg-yellow-100 text-yellow-800 border-yellow-500"
+                : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
+            }`}
+          >
+            {language === "bn" ? "ইনস্ট্যান্ট ডিপোজিট" : "Instant Deposit"}
+          </button>
+        </div>
+
+        {/* Selected Method Badge (unchanged) */}
         <div className="inline-flex items-center gap-3 bg-pink-50 text-black px-4 py-2 rounded-lg mb-6">
           {depositPaymentMethods
             .filter((m) => m._id === selectedTab)
@@ -406,7 +527,6 @@ const TabsWrapper = ({ language }) => {
         </div>
 
         {/* Channel Tabs */}
-        {/* Local styles for Opay shimmer */}
         <style>{`
           @keyframes opay-glow {
             0% { background-position: 0% 0%; }
@@ -436,10 +556,14 @@ const TabsWrapper = ({ language }) => {
                     ? "bg-red-100 text-red-700 border-2 border-red-600"
                     : "bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200"
                 }`;
+
             return (
               <button
                 key={tab.name}
-                onClick={() => handleProcessTabChange(tab.name)}
+                onClick={() => {
+                  handleProcessTabChange(tab.name);
+                  // if user manually changes away, keep instantDeposit flag as-is (no forced reset)
+                }}
                 className={cls}
               >
                 {isOpay ? (
@@ -452,20 +576,10 @@ const TabsWrapper = ({ language }) => {
           })}
         </div>
 
-        {/* Opay devices panel visible to user */}
+        {/* Opay devices panel (kept hidden) */}
         {String(selectedProcessTab).toLowerCase() === "opay" && opayEnabled && (
           <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 p-4 rounded-lg mb-6 hidden">
             <strong>Opay Devices Online:</strong> {opayOnlineCount}
-            <br />
-            <span className="text-sm">
-              {opayOnlineCount > 0
-                ? language === "bn"
-                  ? "Opay device online, deposit korte parben."
-                  : "Opay device is online, you can deposit."
-                : language === "bn"
-                ? "Kono Opay device online nei, deposit korte parben na."
-                : "No Opay device online, deposit not available."}
-            </span>
           </div>
         )}
 
@@ -475,10 +589,10 @@ const TabsWrapper = ({ language }) => {
           methodName={methodName}
           selectedProcessTab={selectedProcessTab}
           selectedPromotion={selectedPromotion}
-          depositPaymentMethods={depositPaymentMethods} // এটা যোগ করো
+          depositPaymentMethods={depositPaymentMethods}
           language={language}
           tabsData={tabsData}
-          userId={userId} // যদি লাগে
+          userId={userId}
           selectedTab={selectedTab}
           handlePromotionChange={handlePromotionChange}
           userInputs={tabsData[selectedTab]?.userInputs || []}
@@ -488,6 +602,10 @@ const TabsWrapper = ({ language }) => {
           setSelectedAmount={setSelectedAmount}
           viewerApiKey={viewerApiKey}
           opayOnlineCount={opayOnlineCount}
+          // ✅ NEW props for instant deposit flow
+          instantDeposit={instantDeposit}
+          oraclePayEnabled={oraclePayEnabled}
+          onInstantDepositNow={handleInstantDepositNow}
         />
       </div>
     </div>

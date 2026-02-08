@@ -40,6 +40,7 @@
     "react-shimmer-effects": "^1.0.4",
     "react-slick": "^0.31.0",
     "react-spinners": "^0.17.0",
+    "react-toastify": "^11.0.5",
     "slick-carousel": "^1.8.1",
     "socket.io-client": "^4.8.1",
     "sort-by": "^0.0.2",

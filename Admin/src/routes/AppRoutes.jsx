@@ -50,6 +50,7 @@ import OpayDepositAdmin from "../pages/OpayDepositAdmin";
 import GameHistory from "../pages/GameHistory";
 import SuperAffiliateBridge from "../pages/SuperAffiliateBridge";
 import MasterAffiliateBridge from "../pages/MasterAffiliateBridge";
+import OracleWalletAgent from "../pages/OracleWalletAgent";
 
 const AppRoutes = () => (
   <Routes>
@@ -132,7 +133,8 @@ const AppRoutes = () => (
     <Route path="/opay/deposit" element={<OpayDepositAdmin />} />
     <Route path="/game-history" element={<GameHistory />} />
     <Route path="/super-affiliate-bridge" element={<SuperAffiliateBridge />} />
-    <Route path="//master-affiliate-bridge" element={<MasterAffiliateBridge />} />
+    <Route path="/master-affiliate-bridge" element={<MasterAffiliateBridge />} />
+    <Route path="/opay/wallet-agent" element={<OracleWalletAgent />} />
   </Routes>
 );
 

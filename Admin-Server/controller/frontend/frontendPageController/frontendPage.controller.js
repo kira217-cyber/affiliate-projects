@@ -2726,33 +2726,66 @@ exports.getSubmenuProviders = async (req, res) => {
   console.log("Fetching submenu providers...");
 
   try {
-    // 1. Fetch all providers from the external API
+    // 1. Fetch providers from external API
     const providerResponse = await axios.get(
-      `https://apigames.oracleapi.net/api/providers`,
+      "https://apigames.oracleapi.net/api/providers",
       {
         headers: {
           "x-api-key":
             "300cc0adfcfb041c25c4a8234e3c0e312a44c7570677d64bdb983412f045da67",
         },
+        timeout: 10000, // prevent hanging forever
       }
     );
-    const providers = providerResponse.data.data;
+
+    // ────────────────────────────────────────────────
+    //           Debug: Log the actual response shape
+    // ────────────────────────────────────────────────
+    console.log("API status:", providerResponse.status);
+    console.log("API response keys:", Object.keys(providerResponse.data));
+    console.log(
+      "providerResponse.data typeof:",
+      typeof providerResponse.data
+    );
+
+    // Safely access nested data
+    let providers = [];
+
+    if (
+      providerResponse.data &&
+      typeof providerResponse.data === "object" &&
+      Array.isArray(providerResponse.data.data)
+    ) {
+      providers = providerResponse.data.data;
+    } else if (
+      providerResponse.data &&
+      Array.isArray(providerResponse.data.providers)
+    ) {
+      providers = providerResponse.data.providers; // possible alternative structure
+    } else if (Array.isArray(providerResponse.data)) {
+      providers = providerResponse.data; // maybe flattened
+    }
+
+    console.log(`Found ${providers.length} providers`);
 
     const providerMap = new Map(providers.map((p) => [p._id, p]));
 
-    // 2. Fetch all sub-options from the local database
-    const subOptions = await SubOption.find().lean();
+    // 2. Fetch local sub-options
+    const subOptions = await SubOption.find().lean().exec();
 
-    // 3. Merge the data
+    console.log(`Found ${subOptions.length} subOptions`);
+
+    // 3. Merge safely
     const mergedSubmenus = subOptions.map((sub) => {
       const providerInfo = providerMap.get(sub.providerId);
       return {
         ...sub,
-        providerName: providerInfo ? providerInfo.name : "Unknown Provider",
-        providerImage: providerInfo ? providerInfo.image : "",
+        providerName: providerInfo?.name ?? "Unknown Provider",
+        providerImage: providerInfo?.image ?? "",
       };
     });
 
+    // Use your sendResponse helper (assuming it exists)
     sendResponse(
       res,
       200,
@@ -2761,12 +2794,24 @@ exports.getSubmenuProviders = async (req, res) => {
       mergedSubmenus
     );
   } catch (error) {
-    console.error("Error fetching submenu providers:", error);
+    console.error("Error fetching submenu providers:", error.message);
+
+    if (error.response) {
+      // API responded with error status (4xx/5xx)
+      console.error("API error response:", {
+        status: error.response.status,
+        data: error.response.data,
+      });
+    } else if (error.request) {
+      console.error("No response received from API");
+    }
+
     sendResponse(
       res,
       500,
       false,
-      "Server error while fetching submenu providers"
+      "Server error while fetching submenu providers",
+      { debug: error.message }
     );
   }
 };
