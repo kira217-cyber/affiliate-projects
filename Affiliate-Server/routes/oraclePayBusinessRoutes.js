@@ -35,6 +35,124 @@ router.get("/admin", async (req, res) => {
   }
 });
 
+router.get("/deposits/admin", async (req, res) => {
+  try {
+    const page = Math.max(parseInt(req.query.page || "1", 10), 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit || "20", 10), 1), 100);
+    const skip = (page - 1) * limit;
+
+    const q = String(req.query.q || "").trim();
+    const status = String(req.query.status || "").trim().toUpperCase();
+
+    // status filter (optional)
+    const matchStage = {};
+    if (["PENDING", "PAID", "FAILED"].includes(status)) {
+      matchStage.status = status;
+    }
+
+    // ✅ aggregation: userIdentity(string) -> ObjectId -> lookup admins -> allow username search
+    const pipeline = [
+      { $match: matchStage },
+
+      // userIdentity string -> ObjectId (safe convert)
+      {
+        $addFields: {
+          userObjectId: {
+            $convert: {
+              input: "$userIdentity",
+              to: "objectId",
+              onError: null,
+              onNull: null,
+            },
+          },
+        },
+      },
+
+      // lookup admins
+      {
+        $lookup: {
+          from: "admins",
+          localField: "userObjectId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $addFields: {
+          user: { $arrayElemAt: ["$user", 0] },
+        },
+      },
+
+      // username search (optional)
+      ...(q
+        ? [
+            {
+              $match: {
+                $or: [
+                  { "user.username": { $regex: q, $options: "i" } },
+                  { invoiceNumber: { $regex: q, $options: "i" } },
+                  { transactionId: { $regex: q, $options: "i" } },
+                ],
+              },
+            },
+          ]
+        : []),
+
+      // sort latest first
+      { $sort: { createdAt: -1 } },
+
+      // pagination + total in one query
+      {
+        $facet: {
+          data: [
+            { $skip: skip },
+            { $limit: limit },
+            {
+              $project: {
+                userIdentity: 1,
+                amount: 1,
+                invoiceNumber: 1,
+                status: 1,
+                checkoutItems: 1,
+                transactionId: 1,
+                sessionCode: 1,
+                bank: 1,
+                footprint: 1,
+                paidAt: 1,
+                createdAt: 1,
+                updatedAt: 1,
+
+                // user info
+                userName: { $ifNull: ["$user.username", "Unknown"] },
+                userWhatsapp: { $ifNull: ["$user.whatsapp", ""] },
+                userId: "$userObjectId",
+              },
+            },
+          ],
+          total: [{ $count: "count" }],
+        },
+      },
+    ];
+
+    const result = await OraclePayDeposit.aggregate(pipeline);
+    const data = result?.[0]?.data || [];
+    const total = result?.[0]?.total?.[0]?.count || 0;
+
+    res.json({
+      success: true,
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err) {
+    console.error("oraclepay deposits admin error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
 /**
  * ✅ ADMIN: UPDATE settings
  * PUT /api/oraclepay-business/admin

@@ -12,6 +12,7 @@ const PersonalCenterModal = ({ isOpen, onClose, tab, name }) => {
   if (!isOpen) return null;
 
   const handleClose = () => {
+    navigate("/");
     onClose();
   };
 

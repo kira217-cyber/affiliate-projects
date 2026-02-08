@@ -474,7 +474,7 @@ const TabsWrapper = ({ language }) => {
                 : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
             }`}
           >
-            {language === "bn" ? "ম্যানুয়াল ডিপোজিট" : "Manual Deposit"}
+            {language === "bn" ? "ডিপোজিট" : "Deposit"}
           </button>
 
           <button

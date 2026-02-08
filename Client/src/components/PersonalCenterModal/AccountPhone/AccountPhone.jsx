@@ -28,7 +28,7 @@ import { AuthContext } from "@/Context/AuthContext";
 // import memberInfoBg from "../../../assets/member-info-bg.f44b2894.png";
 
 const AccountPhone = () => {
-  const { language } = useContext(AuthContext);
+  const { language,user,balance } = useContext(AuthContext);
   const items = [
     {
       name: language === "bn" ? "ডিপোজিট" : "Deposit",
@@ -143,7 +143,7 @@ const AccountPhone = () => {
                 {/* Username & Edit */}
 
                 <div className="flex gap-2  items-center text-black font-semibold  lg:text-black bg-opacity-80 px-2 rounded">
-                  <p className="font-medium">rohankh</p>
+                  <p className="font-medium">{user?.username || "username"}</p>
                   <FaRegEdit />
                 </div>
                 <div className="lg:flex lg:gap-2 lg:leading-normal leading-tight  items-center  px-2 rounded text-[#25252599]  lg:text-black">
@@ -151,7 +151,7 @@ const AccountPhone = () => {
                     Username:
                   </p>
                   <div className="flex gap-2  items-center text-[10px] lg:text-xs rounded-full p-1 lg:p-2 lg:bg-[#919ba6]">
-                    <p className="font-medium">rohankh</p>
+                    <p className="font-medium">{user?.username || "username"}</p>
                     <FaRegCopy />
                   </div>
                 </div>
@@ -159,7 +159,7 @@ const AccountPhone = () => {
             </div>
             <div className="flex items-start">
               <span className="py-2 pr-1  ">
-                ৳ <strong> 0.00 </strong>
+                ৳ <strong> {balance || 0.00} </strong>
               </span>
             </div>
             <div className="flex gap-2 text-black">
