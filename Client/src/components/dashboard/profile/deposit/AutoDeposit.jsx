@@ -132,7 +132,7 @@ const AutoDeposit = () => {
   // if disabled, hide page nicely
   if (!oraclePayEnabled) {
     return (
-      <div className="p-3 md:p-6">
+      <div className="p-3 md:p-6 min-h-screen md:min-h-0">
         <div className="bg-white border rounded-xl p-6 text-center">
           <h2 className="text-lg md:text-xl font-extrabold text-gray-900">
             {language === "bn" ? "Auto Deposit" : "Auto Deposit"}
