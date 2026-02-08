@@ -34,7 +34,7 @@ const Account = ({
   );
   const { user, balance, refreshBalance } = useContext(AuthContext)
   const [isEditing, setIsEditing] = useState(false);
-  const [newUsername, setNewUsername] = useState(user?.username || "rohankh");
+  const [newUsername, setNewUsername] = useState(user?.username || "username");
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -82,7 +82,7 @@ const Account = ({
   const [showBalance, setShowBalance] = useState(false);
 
   return (
-    <div className="grid grid-cols-3 gap-2 p-6">
+    <div className="grid grid-cols-3 gap-2 p-6 overflow-y-auto h-[500px] [scrollbar-width:none]">
       <div className="bg-bgAccount py-2 rounded-xl shadow-md mt-6 h-[600px] bg-gradient-to-r from-red-100 via-yellow-100 to-blue-100">
         {/* TOP PROFILE CARD */}
         <div

@@ -40,7 +40,7 @@ const Invite = () => {
 
 
   return (
-    <div className="w-full p-4 min-h-screen md:min-h-0">
+    <div className="w-full p-4 min-h-screen md:min-h-0 overflow-y-auto h-[500px] [scrollbar-width:none]">
       {/* Tabs */}
       <div className="flex space-x-4 overflow-x-auto pr-6 lg:pr-0 whitespace-nowrap border-b border-gray-300 mb-4">
         {tabs.map((tab) => (

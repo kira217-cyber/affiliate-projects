@@ -60,7 +60,9 @@ const Navbar = ({ onMenuClick, isSidebarOpen }) => {
       "Betting Record": "বাজির রেকর্ড",
       "Account Record": "লাভ ও ক্ষতি",
       "Internal Message": "মেসেজ",
+
       Deposit: "ডিপজিট",
+      "Auto Deposit": "অটো ডিপজিট",
       Withdrawal: "উত্তোলন",
       "Customer Service": "গ্রাহক সেবা",
       "Sign out": "লগ আউট",
@@ -72,6 +74,7 @@ const Navbar = ({ onMenuClick, isSidebarOpen }) => {
       "Betting Record": "Betting Record",
       "Account Record": "Account Record",
       "Internal Message": "Internal Message",
+      "Auto Deposit": "Auto Deposit",
       Deposit: "Deposit",
       Withdrawal: "Withdrawal",
       "Customer Service": "Customer Service",
@@ -113,6 +116,12 @@ const Navbar = ({ onMenuClick, isSidebarOpen }) => {
       label: "Deposit",
       icon: <RiLuggageDepositFill />,
       link: "/information#tab2",
+    },
+    {
+      id: "tab2",
+      label: "Auto Deposit",
+      icon: <RiLuggageDepositFill />,
+      link: "/information#tab3",
     },
     {
       id: "tab3",

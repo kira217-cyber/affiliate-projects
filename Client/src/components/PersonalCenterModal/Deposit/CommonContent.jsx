@@ -298,7 +298,7 @@ const CommonContent = ({
       )}
 
       {/* Amount Selection */}
-      <div className="mb-8">
+      <div className="mb-8 ">
         <div className="flex flex-col lg:flex-row gap-4">
           <p className="font-semibold min-w-[140px]">
             {language === "bn" ? "ডিপোজিট পরিমাণ:" : "Deposit Amount:"}
@@ -364,7 +364,7 @@ const CommonContent = ({
       )}
 
       {/* Main Deposit Button (design unchanged) */}
-      <div className="mt-10 text-center">
+      <div className="mt-10 text-center ">
         <button
           onClick={handleApply}
           disabled={isLoading}

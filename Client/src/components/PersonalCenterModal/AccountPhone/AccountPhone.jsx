@@ -118,7 +118,7 @@ const AccountPhone = () => {
   ];
 
   return (
-    <div className="overflow-y-auto h-[500px] custom-scrollbar-hidden  pb-10">
+    <div className="overflow-y-auto h-[500px] [scrollbar-width:none]  pb-10">
       <div className=" relative ">
         <div>
           <img

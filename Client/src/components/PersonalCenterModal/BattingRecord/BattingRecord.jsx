@@ -122,7 +122,7 @@ const BattingRecord = () => {
   const profitLoss = totalWin - totalBet;
 
   return (
-    <div className="p-4 space-y-6 bg-gray-50 min-h-screen md:min-h-0">
+    <div className="p-4 space-y-6 bg-gray-50 min-h-screen md:min-h-0 overflow-y-auto h-[500px] [scrollbar-width:none]">
       {/* ================= Main Tabs ================= */}
       <div className="flex gap-8 lg:gap-12 text-sm lg:text-lg overflow-x-auto border-b border-gray-300 pb-2">
         {data.map((tab, i) => (

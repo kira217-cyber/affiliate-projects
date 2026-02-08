@@ -9,14 +9,12 @@ import { RiCustomerService2Line } from "react-icons/ri";
 import { AuthContext } from "@/Context/AuthContext";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
-import { toast } from "react-toastify";
 
 const TabsWrapper = ({ language }) => {
-  const { userId,user } = useContext(AuthContext);
+  const { userId, user } = useContext(AuthContext);
   const userName = user?.username || "User";
   console.log("TabsWrapper render - userId:", userId, "userName:", userName);
 
-  // Prevent multiple API calls
   const opayApiCalled = useRef(false);
 
   const [depositPaymentMethods, setDepositPaymentMethods] = useState([]);
@@ -33,12 +31,6 @@ const TabsWrapper = ({ language }) => {
   // viewer key (existing opay devices system)
   const [opayOnlineCount, setOpayOnlineCount] = useState(0);
   const [viewerApiKey, setViewerApiKey] = useState(null);
-
-  // ✅ NEW: OraclePay Business enabled (admin token+active)
-  const [oraclePayEnabled, setOraclePayEnabled] = useState(false);
-
-  // ✅ NEW: Instant Deposit toggle (UI button)
-  const [instantDeposit, setInstantDeposit] = useState(false);
 
   // existing opay enabled state (viewer-key based)
   const [opayEnabled, setOpayEnabled] = useState(false);
@@ -89,21 +81,6 @@ const TabsWrapper = ({ language }) => {
     };
 
     fetchData();
-  }, []);
-
-  // ✅ NEW: Fetch OraclePay Business status (admin token+active)
-  useEffect(() => {
-    const fetchOraclePayStatus = async () => {
-      try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/oraclepay-business/status`,
-        );
-        setOraclePayEnabled(!!res?.data?.data?.enabled);
-      } catch (e) {
-        setOraclePayEnabled(false);
-      }
-    };
-    fetchOraclePayStatus();
   }, []);
 
   // Fetch viewer API key + active flag (existing)
@@ -160,52 +137,6 @@ const TabsWrapper = ({ language }) => {
     setSelectedPromotion(promotion);
   };
 
-  // ✅ Instant Deposit: create payment link and redirect to OraclePay
-  const handleInstantDepositNow = async () => {
-    try {
-      if (!oraclePayEnabled) {
-        toast.error("Instant Deposit এখন Available নেই (Admin disabled)");
-        return;
-      }
-
-      const amount = Number(selectedAmount);
-      if (!amount || amount < 5) {
-        toast.error("Minimum amount 5");
-        return;
-      }
-
-      if (!userId) {
-        toast.error("User not found. Please login again.");
-        return;
-      }
-
-      const invoiceNumber = `DEP-${userId}-${Date.now()}`;
-
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/oraclepay-business/create`,
-        {
-          amount,
-          userIdentity: userId,
-          invoiceNumber,
-          checkoutItems: {
-            type: "deposit",
-            method: "instant",
-            gateway: "oraclepay",
-          },
-        },
-      );
-
-      if (res.data?.success && res.data?.payment_page_url) {
-        window.location.href = res.data.payment_page_url;
-        return;
-      }
-
-      toast.error(res.data?.message || "Payment link create failed");
-    } catch (e) {
-      toast.error(e?.response?.data?.message || "Payment link create failed");
-    }
-  };
-
   // Build tabsData exactly like before (same logic)
   const tabsData = useMemo(() => {
     return depositPaymentMethods.reduce((acc, method) => {
@@ -249,16 +180,12 @@ const TabsWrapper = ({ language }) => {
           return { name: gateway, promotions: gatewayPromotions };
         }) || [];
 
-      // ✅ Opay tab show/hide rule:
-      // - manual opay depends on opayEnabled (viewer system)
-      // - instant deposit depends on oraclePayEnabled
-      const allowOpayTab = !!(opayEnabled || oraclePayEnabled);
-
+      // Opay tab show/hide only depends on opayEnabled now
       const hasOpay = processTabs.some(
         (t) => String(t.name).toLowerCase() === "opay",
       );
 
-      if (!allowOpayTab) {
+      if (!opayEnabled) {
         processTabs = processTabs.filter(
           (t) => String(t.name).toLowerCase() !== "opay",
         );
@@ -280,93 +207,42 @@ const TabsWrapper = ({ language }) => {
 
       return acc;
     }, {});
-  }, [
-    depositPaymentMethods,
-    promotions,
-    language,
-    opayEnabled,
-    oraclePayEnabled,
-  ]);
+  }, [depositPaymentMethods, promotions, language, opayEnabled]);
 
   // Loading State
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen md:min-h-0 lg:flex-row gap-6 px-2 lg:px-6 py-6">
-        {/* Left Sidebar Skeleton */}
         <div className="lg:w-1/4 grid grid-cols-4 lg:flex lg:flex-col gap-2">
           {[1, 2, 3, 4, 5].map((i) => (
             <div
               key={i}
               className="backdrop-blur-md bg-white/40 border border-white/60 rounded-lg p-3 flex items-center gap-3 shadow-sm"
             >
-              <Skeleton
-                height={50}
-                width={50}
-                baseColor="#E5E7EB"
-                highlightColor="#F3F4F6"
-                circle
-              />
-              <Skeleton
-                height={18}
-                width="70%"
-                baseColor="#E5E7EB"
-                highlightColor="#F3F4F6"
-              />
+              <Skeleton height={50} width={50} circle />
+              <Skeleton height={18} width="70%" />
             </div>
           ))}
         </div>
 
-        {/* Right Content Skeleton */}
         <div className="lg:w-3/4 backdrop-blur-xl bg-white/50 rounded-lg shadow-lg border border-white/60 p-6">
-          <Skeleton
-            height={25}
-            width="40%"
-            baseColor="#E5E7EB"
-            highlightColor="#F3F4F6"
-          />
+          <Skeleton height={25} width="40%" />
           <div className="mt-6 space-y-4">
-            <Skeleton
-              height={20}
-              width="80%"
-              baseColor="#E5E7EB"
-              highlightColor="#F3F4F6"
-            />
-            <Skeleton
-              height={20}
-              width="60%"
-              baseColor="#E5E7EB"
-              highlightColor="#F3F4F6"
-            />
-            <Skeleton
-              height={150}
-              width="100%"
-              baseColor="#E5E7EB"
-              highlightColor="#F3F4F6"
-            />
+            <Skeleton height={20} width="80%" />
+            <Skeleton height={20} width="60%" />
+            <Skeleton height={150} width="100%" />
           </div>
           <div className="grid grid-cols-3 gap-4 mt-6">
             {[1, 2, 3].map((i) => (
-              <Skeleton
-                key={i}
-                height={50}
-                baseColor="#E5E7EB"
-                highlightColor="#F3F4F6"
-              />
+              <Skeleton key={i} height={50} />
             ))}
           </div>
-          <Skeleton
-            className="mt-6"
-            height={45}
-            width="40%"
-            baseColor="#E5E7EB"
-            highlightColor="#F3F4F6"
-          />
+          <Skeleton className="mt-6" height={45} width="40%" />
         </div>
       </div>
     );
   }
 
-  // Error State
   if (error) {
     return (
       <div className="p-8 text-center text-red-600">
@@ -375,7 +251,6 @@ const TabsWrapper = ({ language }) => {
     );
   }
 
-  // No Methods
   if (depositPaymentMethods.length === 0) {
     return (
       <div className="p-8 text-center text-gray-600">
@@ -387,7 +262,7 @@ const TabsWrapper = ({ language }) => {
   }
 
   return (
-    <div className="flex flex-col overflow-y-auto max-h-[99vh] custom-scrollbar-hidden lg:flex-row gap-6 px-2 lg:px-6 pb-10 lg:pb-0">
+    <div className="flex flex-col overflow-y-auto max-h-screen custom-scrollbar-hidden lg:flex-row gap-6 px-2 lg:px-6 pb-10 lg:pb-0 md:h-[500px] [scrollbar-width:none]">
       {/* Left Tabs */}
       <div className="lg:w-1/4 grid grid-cols-4 lg:flex lg:flex-col gap-2 py-6">
         {depositPaymentMethods.map((method) => (
@@ -402,17 +277,12 @@ const TabsWrapper = ({ language }) => {
               setSelectedTab(method._id);
               setMethodName(method.methodName.toLowerCase());
 
-              // keep old behavior: select first available tab (opay removed if not enabled)
-              const allowOpayTab = !!(opayEnabled || oraclePayEnabled);
-
               const availableTabs = (method.gateway || []).filter(
-                (g) => !(String(g).toLowerCase() === "opay" && !allowOpayTab),
+                (g) => !(String(g).toLowerCase() === "opay" && !opayEnabled),
               );
 
               setSelectedProcessTab(availableTabs[0] || null);
               setSelectedPromotion(null);
-
-              // instantDeposit selection remains as-is (do not auto change)
             }}
           >
             <img
@@ -435,7 +305,7 @@ const TabsWrapper = ({ language }) => {
       </div>
 
       {/* Right Content */}
-      <div className="lg:w-3/4 bg-white rounded-lg shadow-lg border p-4 lg:p-6">
+      <div className="lg:w-3/4 bg-white rounded-lg shadow-lg border p-4 lg:p-6 ">
         {/* Header */}
         <div className="hidden lg:flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold border-l-4 border-green-600 pl-3">
@@ -461,41 +331,6 @@ const TabsWrapper = ({ language }) => {
           {language === "bn"
             ? "অনুগ্রহ করে আপনার ডিপোজিট করার পরে অবশ্যই আপনার Trx-ID সাবমিট করবেন।"
             : "Please submit your Trx-ID after deposit for faster processing."}
-        </div>
-
-        {/* ✅ NEW: Instant Deposit toggle (exactly above Selected Method Badge) */}
-        <div className="flex items-center gap-3 mb-3">
-          <button
-            type="button"
-            onClick={() => setInstantDeposit(false)}
-            className={`px-4 py-2 rounded-lg font-bold border transition-all ${
-              !instantDeposit
-                ? "bg-red-100 text-red-700 border-red-600"
-                : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
-            }`}
-          >
-            {language === "bn" ? "ডিপোজিট" : "Deposit"}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              if (!oraclePayEnabled) {
-                toast.error("Instant Deposit এখন Available নেই");
-                return;
-              }
-              setInstantDeposit(true);
-              // Optionally auto-select Opay tab when instant deposit chosen:
-              setSelectedProcessTab("Opay");
-            }}
-            className={`px-4 py-2 rounded-lg font-bold border transition-all ${
-              instantDeposit
-                ? "bg-yellow-100 text-yellow-800 border-yellow-500"
-                : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
-            }`}
-          >
-            {language === "bn" ? "ইনস্ট্যান্ট ডিপোজিট" : "Instant Deposit"}
-          </button>
         </div>
 
         {/* Selected Method Badge (unchanged) */}
@@ -560,10 +395,7 @@ const TabsWrapper = ({ language }) => {
             return (
               <button
                 key={tab.name}
-                onClick={() => {
-                  handleProcessTabChange(tab.name);
-                  // if user manually changes away, keep instantDeposit flag as-is (no forced reset)
-                }}
+                onClick={() => handleProcessTabChange(tab.name)}
                 className={cls}
               >
                 {isOpay ? (
@@ -576,14 +408,12 @@ const TabsWrapper = ({ language }) => {
           })}
         </div>
 
-        {/* Opay devices panel (kept hidden) */}
         {String(selectedProcessTab).toLowerCase() === "opay" && opayEnabled && (
           <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 p-4 rounded-lg mb-6 hidden">
             <strong>Opay Devices Online:</strong> {opayOnlineCount}
           </div>
         )}
 
-        {/* Common Content */}
         <CommonContent
           amounts={tabsData[selectedTab]?.amounts || []}
           methodName={methodName}
@@ -602,10 +432,6 @@ const TabsWrapper = ({ language }) => {
           setSelectedAmount={setSelectedAmount}
           viewerApiKey={viewerApiKey}
           opayOnlineCount={opayOnlineCount}
-          // ✅ NEW props for instant deposit flow
-          instantDeposit={instantDeposit}
-          oraclePayEnabled={oraclePayEnabled}
-          onInstantDepositNow={handleInstantDepositNow}
         />
       </div>
     </div>

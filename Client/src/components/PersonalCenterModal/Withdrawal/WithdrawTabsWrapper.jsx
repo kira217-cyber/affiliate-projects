@@ -465,7 +465,7 @@ const WithdrawTabsWrapper = () => {
         </div>
       )}
 
-      <div className="w-full max-w-4xl min-h-screen md:min-h-0 mx-auto bg-white rounded-xl p-4 sm:p-6 pb-20 md:pb-6 relative">
+      <div className="w-full max-w-4xl min-h-screen md:min-h-0 mx-auto bg-white rounded-xl p-4 sm:p-6 pb-20 md:pb-6 relative overflow-y-auto h-[500px] [scrollbar-width:none]">
         {/* Payment Methods Tabs */}
         <div className="flex flex-wrap gap-3 mb-6 overflow-x-auto pb-2">
           {methods.map((method) => (

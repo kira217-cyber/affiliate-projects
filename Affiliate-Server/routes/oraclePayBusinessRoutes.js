@@ -224,19 +224,12 @@ router.post("/create", async (req, res) => {
     }
 
     // ✅ callback_url + success_redirect_url env থেকে
-    const callbackUrl = `${process.env.PUBLIC_BACKEND_URL}/api/oraclepay-business/webhook`;
-    const successRedirectUrl = `${process.env.PUBLIC_FRONTEND_URL}/success?invoice=${encodeURIComponent(
-      invoiceNumber
-    )}`;
 
-    // ✅ deposit record create (PENDING)
-    await OraclePayDeposit.create({
-      userIdentity: String(userIdentity),
-      amount: numAmount,
-      invoiceNumber: String(invoiceNumber),
-      status: "PENDING",
-      checkoutItems: checkoutItems || {},
-    });
+    const callbackUrl = `${process.env.PUBLIC_BACKEND_URL}/api/oraclepay-business/webhook`;
+    // const callbackUrl = `https://gentle-sparrow-84.webhook.cool`;
+    const successRedirectUrl = `${process.env.PUBLIC_FRONTEND_URL}`;
+
+    
 
     // ✅ OraclePay API call
     const opayRes = await axios.post(
@@ -278,86 +271,120 @@ router.post("/create", async (req, res) => {
   }
 });
 
+// single user history
+router.get("/wallet-agent-history/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const list = await OraclePayDeposit.find({ userIdentity: String(userId) })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.json({ success: true, data: list });
+  } catch (err) {
+    console.error("OraclePay history error:", err?.message || err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Server error" });
+  }
+});
+
 /**
  * ✅ WEBHOOK (OraclePay -> Backend)
  * POST /api/oraclepay-business/webhook
  * OraclePay requirement: Always reply 'OK'
  */
 router.post("/webhook", async (req, res) => {
+  // ✅ Always respond OK first
   res.send("OK");
 
   try {
     const data = req.body || {};
-    const invoiceRaw = data.invoice_number || data.invoiceNumber;
-    if (!invoiceRaw) {
-      console.log("❌ invoice missing");
-      return;
+
+    const invoiceNumber = String(data.invoice_number || "").trim();
+    const userId = String(data.user_identity || "").trim();
+    const status = String(data.status || "").toUpperCase();
+    const amount = Number(data.amount || 0);
+
+    if (!invoiceNumber) return console.log("❌ invoice_number missing");
+    if (!userId) return console.log("❌ user_identity missing");
+    if (!mongoose.Types.ObjectId.isValid(userId))
+      return console.log("❌ invalid user id:", userId);
+    if (!amount || amount <= 0) return console.log("❌ invalid amount:", amount);
+
+    // ✅ 1) Create deposit if not exists (idempotent create)
+    // invoice unique আছে, তাই duplicate এ error হবে
+    // তাই findOne করে create করবো
+    let dep = await OraclePayDeposit.findOne({ invoiceNumber });
+
+    if (!dep) {
+      dep = await OraclePayDeposit.create({
+        userIdentity: userId,
+        amount,
+        invoiceNumber,
+        status: status === "COMPLETED" ? "PAID" : "PENDING",
+        checkoutItems: data.checkout_items || {},
+        transactionId: data.transaction_id || "",
+        sessionCode: data.session_code || "",
+        bank: data.bank || "",
+        footprint: data.footprint || "",
+        paidAt: status === "COMPLETED" ? new Date() : undefined,
+      });
+
+      console.log("✅ Deposit created:", invoiceNumber, dep.status);
+    } else {
+      console.log("ℹ️ Deposit already exists:", invoiceNumber, dep.status);
     }
 
-    const invoiceNumber = String(invoiceRaw).trim();
-    const status = String(data.status || "").toUpperCase();
+    // ✅ 2) If not completed, stop here
     if (status !== "COMPLETED") {
       console.log("ℹ️ not completed:", status);
       return;
     }
 
-    // ✅ update deposit to PAID (idempotent)
-    const dep = await OraclePayDeposit.findOneAndUpdate(
-      { invoiceNumber, status: { $ne: "PAID" } },
-      {
-        $set: {
-          status: "PAID",
-          transactionId: data.transaction_id || "",
-          sessionCode: data.session_code || "",
-          bank: data.bank || "",
-          footprint: data.footprint || "",
-          paidAt: new Date(),
-          checkoutItems: data.checkout_items || {},
-        },
-      },
-      { new: true }
-    );
+    // ✅ 3) If already PAID, do not add balance again (idempotent)
+    // if (dep.status === "PAID") {
+    //   console.log("ℹ️ already PAID, skip balance:", invoiceNumber);
+    //   return;
+    // }
 
-    if (!dep) {
-      console.log("ℹ️ deposit not found or already PAID:", invoiceNumber);
-      return;
-    }
+    // ✅ 4) Update deposit to PAID + set webhook fields
+    // conditionally update to avoid race/double
+    // const paidDep = await OraclePayDeposit.findOneAndUpdate(
+    //   { invoiceNumber, status: { $ne: "PAID" } },
+    //   {
+    //     $set: {
+    //       status: "PAID",
+    //       transactionId: data.transaction_id || "",
+    //       sessionCode: data.session_code || "",
+    //       bank: data.bank || "",
+    //       footprint: data.footprint || "",
+    //       paidAt: new Date(),
+    //       checkoutItems: data.checkout_items || dep.checkoutItems || {},
+    //     },
+    //   },
+    //   { new: true }
+    // );
 
-    const amount = Number(data.amount ?? dep.amount ?? 0);
-    if (!amount || amount <= 0) {
-      console.log("❌ invalid amount:", data.amount, dep.amount);
-      return;
-    }
+    // if (!paidDep) {
+    //   console.log("ℹ️ someone already updated to PAID, skip:", invoiceNumber);
+    //   return;
+    // }
 
-    // ✅ তোমার ক্ষেত্রে userIdentity ব্যবহার হবে
-    const userId = String(dep.userIdentity || "").trim();
-    if (!userId) {
-      console.log("❌ dep.userIdentity missing");
-      return;
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      console.log("❌ invalid userId:", userId);
-      return;
-    }
-
-    // ✅ balance inc and capture updated user
+    // ✅ 5) Add balance
     const updatedUser = await Admin.findByIdAndUpdate(
       userId,
       { $inc: { balance: amount } },
       { new: true }
     ).select("username balance");
 
-    if (!updatedUser) {
-      console.log("❌ Admin not found for userId:", userId);
-      return;
-    }
+    if (!updatedUser) return console.log("❌ Admin not found:", userId);
 
     console.log(
-      `✅ Balance Added | user=${updatedUser.username} | newBalance=${updatedUser.balance} | +${amount}`
+      `✅ COMPLETED -> Balance Added | user=${updatedUser.username} | +${amount} | newBalance=${updatedUser.balance}`
     );
   } catch (err) {
-    console.error("❌ OraclePay webhook error:", err?.message || err);
+    console.error("❌ webhook error:", err?.message || err);
   }
 });
 

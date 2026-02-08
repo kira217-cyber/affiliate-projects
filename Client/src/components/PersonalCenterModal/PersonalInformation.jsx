@@ -28,12 +28,13 @@ import WithdrawTabsWrapper from "./Withdrawal/WithdrawTabsWrapper";
 import { AuthContext } from "@/Context/AuthContext";
 import TransactionHistory from "./TransactionHistory/TransactionHistory";
 import BattingRecord from "./BattingRecord/BattingRecord";
+import AutoDeposit from "../dashboard/profile/deposit/Autodeposit";
 
 // TabControl Component
 const TabControl = ({ tabs, activeTab, setActiveTab, language }) => {
   return (
     <div
-      className="w-1/5 hidden rounded-l-xl lg:flex flex-col text-white shadow-md py-6 bg-[#00352f]"
+      className="w-1/5 hidden rounded-l-xl lg:flex flex-col text-white shadow-md bg-[#00352f]"
       style={{
         backgroundImage:
           "url('https://i.ibb.co.com/bj4q5xrW/abstract-textured-backgound-1258-30436.jpg')",
@@ -41,7 +42,7 @@ const TabControl = ({ tabs, activeTab, setActiveTab, language }) => {
         backgroundPosition: "center",
       }}
     >
-      <h3 className="text-center font-bold text-2xl py-4">
+      <h3 className="text-center font-bold text-2xl py-2">
         {language === "en" ? (
           <>
             Personal <br /> Center
@@ -55,7 +56,7 @@ const TabControl = ({ tabs, activeTab, setActiveTab, language }) => {
       {tabs.map((tab) => (
         <button
           key={tab.id}
-          className={`p-4 text-sm flex items-center gap-2 transition-all duration-300 font-medium ${
+          className={`p-3 text-sm flex items-center gap-2 transition-all duration-300 font-medium ${
             activeTab === tab.id
               ? "bg-informationActiveColor"
               : "hover:bg-informationActiveColor"
@@ -195,30 +196,36 @@ const PersonalInformation = ({ tab = "tab1" }) => {
     },
     {
       id: "tab2",
-      label: language === "bn" ? "জমা" : "Deposit",
+      label: language === "bn" ? "জমা" : "Manual Deposit",
       icon: <FaPiggyBank />,
       content: <Deposit />,
     },
     {
       id: "tab3",
+      label: language === "bn" ? "জমা" : "Auto Deposit",
+      icon: <FaPiggyBank />,
+      content: <AutoDeposit />,
+    },
+    {
+      id: "tab4",
       label: language === "bn" ? "উত্তোলনের" : "Withdrawal",
       icon: <FaMoneyBillWave />,
       content: <WithdrawTabsWrapper />,
     },
     {
-      id: "tab4",
+      id: "tab5",
       label: language === "bn" ? "বেটিং রেকর্ড" : "Betting Record",
       icon: <FaClipboardList />,
       content: <BattingRecord />,
     },
     {
-      id: "tab5",
+      id: "tab6",
       label: language === "bn" ? "ট্রান্সেকশন রেকর্ড" : "Transaction Record",
       icon: <FaRegFileAlt />,
       content: <TransactionHistory />,
     },
     {
-      id: "tab6",
+      id: "tab7",
       label: language === "bn" ? "প্রোফিট ও লস" : "Profit and Loss",
       icon: <FaBalanceScale />,
       content: (
@@ -230,26 +237,26 @@ const PersonalInformation = ({ tab = "tab1" }) => {
       ),
     },
     {
-      id: "tab7",
+      id: "tab8",
       label: language === "bn" ? "পুরস্কার কেন্দ্র" : "Reward Center",
       icon: <FaGift />,
       content: <Reward />,
     },
     {
-      id: "tab8",
+      id: "tab9",
       label: language === "bn" ? "বন্ধু আমন্ত্রণ" : "Invite Friends",
       icon: <FaUserFriends />,
       content: <Invite />,
     },
     {
-      id: "tab9",
+      id: "tab10",
       label: language === "bn" ? "অভ্যন্তরীণ বার্তা" : "Internal Message",
       icon: <FaComments />,
       content: <Message />,
     },
     {
-      id: "tab10",
-      label: language === "bn" ? "ম্যানুয়াল রিবেট" : "Manual Rebate",
+      id: "tab11",
+      label: language === "bn" ? "ম্যানুয়াল রিবেট" : "Manual Rebate",
       icon: <FaRedoAlt />,
       content: <Rebate />,
     },
@@ -269,7 +276,7 @@ const PersonalInformation = ({ tab = "tab1" }) => {
 
   return (
     <div className=" bg-white rounded-xl mt-0 md:mt-20 md:flex flex-col items-center">
-      <div className="flex flex-col lg:flex-row max-w-7xl w-full bg-bgAccountTwo shadow-lg rounded-lg">
+      <div className="flex flex-col lg:flex-row max-w-7xl w-full bg-bgAccountTwo shadow-lg rounded-lg ">
         <TabControl
           tabs={tabs}
           activeTab={activeTab}
