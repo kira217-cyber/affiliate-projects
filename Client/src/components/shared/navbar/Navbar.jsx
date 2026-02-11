@@ -61,8 +61,8 @@ const Navbar = ({ onMenuClick, isSidebarOpen }) => {
       "Account Record": "লাভ ও ক্ষতি",
       "Internal Message": "মেসেজ",
 
-      Deposit: "ডিপজিট",
-      "Auto Deposit": "অটো ডিপজিট",
+      Deposit: "ম্যানুয়াল জমা",
+      "Auto Deposit": "অটোমেটিক জমা",
       Withdrawal: "উত্তোলন",
       "Customer Service": "গ্রাহক সেবা",
       "Sign out": "লগ আউট",

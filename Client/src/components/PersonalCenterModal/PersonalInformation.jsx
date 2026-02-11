@@ -196,13 +196,13 @@ const PersonalInformation = ({ tab = "tab1" }) => {
     },
     {
       id: "tab2",
-      label: language === "bn" ? "জমা" : "Manual Deposit",
+      label: language === "bn" ? "ম্যানুয়াল জমা" : "Manual Deposit",
       icon: <FaPiggyBank />,
       content: <Deposit />,
     },
     {
       id: "tab3",
-      label: language === "bn" ? "জমা" : "Auto Deposit",
+      label: language === "bn" ? "অটোমেটিক জমা" : "Auto Deposit",
       icon: <FaPiggyBank />,
       content: <AutoDeposit />,
     },
