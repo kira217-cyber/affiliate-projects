@@ -1,0 +1,84 @@
+Client .env.local
+
+# Online
+VITE_ORACLEPAY_CALLBACK_URL=https://api-affiliate.bg444.live/api/oraclepay-business/webhook
+VITE_ORACLEPAY_SUCCESS_URL=https://bg444.live
+VITE_BACKEND_API=https://api-admin.bg444.live/
+VITE_API_URL=https://api-affiliate.bg444.live
+VITE_API_URL_REFERRAL=https://bg444.live
+
+# local
+# VITE_ORACLEPAY_CALLBACK_URL=http://localhost:5002/api/oraclepay-business/webhook
+# VITE_ORACLEPAY_SUCCESS_URL=http://localhost:5173
+# VITE_BACKEND_API=http://localhost:5001/
+# VITE_API_URL=http://localhost:5002
+# VITE_API_URL_REFERRAL=http://localhost:5173
+
+
+
+Affiliate-Client .env.local
+
+#  Online
+# VITE_API_URL=https://api-affiliate.bg444.live
+# VITE_API_URL_REFERRAL=https://bg444.live
+# VITE_API_URL_MASTER_REFERRAL=https://partner.bg444.live
+
+# local
+VITE_API_URL=http://localhost:5002
+VITE_API_URL_REFERRAL=http://localhost:5173
+VITE_API_URL_MASTER_REFERRAL=http://localhost:5174
+
+
+
+Admin .env.local
+
+#  Online
+VITE_REACT_APP_BACKEND_API=https://api-admin.bg444.live/
+VITE_APP_PRIMARY_DOMAIN=bg444.live
+VITE_SOCKET_IO_URL=https://api.oraclepay.org
+VITE_REACT_APP_BACKEND_API2=https://api-affiliate.bg444.live
+
+
+# local 
+# VITE_REACT_APP_BACKEND_API=http://localhost:5001/
+# VITE_APP_PRIMARY_DOMAIN=bg444.live
+# VITE_SOCKET_IO_URL=https://api.oraclepay.org
+# VITE_REACT_APP_BACKEND_API2=http://localhost:5002
+
+
+Admin-Server .env
+
+# Online
+# SERVER2_DEPOSIT_URL=https://api-affiliate.bg444.live/api/deposit-bonus/opay/deposit-confirm
+# JWT_SECRET=12345678
+# PORT=5001
+# DB_PASS=mongodb+srv://bdeshop21_db_user:zbUIsyVFH3g6m1JK@cluster0.8p1n1ps.mongodb.net/?appName=Cluster0
+# USERS_DB_CONN=mongodb+srv://oracleUser:KhkaYL4iVGobLqeK@cluster0.to14ojs.mongodb.net/affiliate?retryWrites=true&w=majority
+
+# local
+SERVER2_DEPOSIT_URL=http://localhost:5002/api/deposit-bonus/opay/deposit-confirm
+JWT_SECRET=12345678
+PORT=5001
+DB_PASS=mongodb+srv://bdeshop21_db_user:zbUIsyVFH3g6m1JK@cluster0.8p1n1ps.mongodb.net/?appName=Cluster0
+USERS_DB_CONN=mongodb+srv://oracleUser:KhkaYL4iVGobLqeK@cluster0.to14ojs.mongodb.net/affiliate?retryWrites=true&w=majority
+
+
+
+Affiliate-Server .env
+
+#  Online
+# PORT=5002
+# MONGO_URI=mongodb+srv://oracleUser:KhkaYL4iVGobLqeK@cluster0.to14ojs.mongodb.net/affiliate?retryWrites=true&w=majority
+# VITE_API_URL=https://aff.bg444.live
+# NODE_ENV=ThisIsMyFault
+# PUBLIC_BACKEND_URL=https://api-affiliate.bg444.live
+# PUBLIC_FRONTEND_URL=https://bg444.live
+
+# local
+PORT=5002
+MONGO_URI=mongodb+srv://oracleUser:KhkaYL4iVGobLqeK@cluster0.to14ojs.mongodb.net/affiliate?retryWrites=true&w=majority
+VITE_API_URL=http://localhost:5074
+NODE_ENV=ThisIsMyFault
+PUBLIC_BACKEND_URL=http://localhost:5002
+PUBLIC_FRONTEND_URL=http://localhost:5173
+
