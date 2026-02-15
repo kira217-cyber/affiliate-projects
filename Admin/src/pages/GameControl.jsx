@@ -53,9 +53,9 @@ export default function GameControl() {
     fetchSubmenuProviders();
     dispatch(fetchGames());
   }, [dispatch]);
-  const fetchApiGames = async (page) => {
-    if (!selectedSubmenu) return;
-    const selected = submenuProviders.find((s) => s._id === selectedSubmenu);
+  const fetchApiGames = async (page, submenuId = selectedSubmenu) => {
+    if (!submenuId) return;
+    const selected = submenuProviders.find((s) => s._id === submenuId);
     if (!selected?.providerId) return;
     try {
       const response = await axios.get(
@@ -85,7 +85,7 @@ export default function GameControl() {
     setCurrentPage(1);
     setTotalPages(1);
     if (!submenuId) return;
-    await fetchApiGames(1);
+    await fetchApiGames(1, submenuId);
   };
   const handleApiGameToggle = (gameAPIID, field) => {
     setApiGamesState((prev) => ({
