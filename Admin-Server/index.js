@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-
+const jwt = require("jsonwebtoken");
 const globalError = require("./error/error");
 const connectDb = require("./db/db");
 const config = require("./config/config");
@@ -108,6 +108,35 @@ app.use("/api/v1/admin", [
   adminHomeFooterControlRouter,
   adminOpayRouter,
 ]);
+
+const requireAuth = async (req, res, next) => {
+  try {
+    const auth = req.headers.authorization || "";
+    const token = auth.startsWith("Bearer ") ? auth.split(" ")[1] : null;
+
+    if (!token) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (!decoded.id) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token payload (id missing)",
+      });
+    }
+
+    req.userId = decoded.id;
+    next();
+  } catch (err) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid or expired token",
+    });
+  }
+};
+
 
 // * view customer user routers
 app.use("/api/v1/frontend", [frontendAuthRouter, frontendHomeControlRouter]);
@@ -421,6 +450,132 @@ app.get("/reset-admin", async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// =====================================================
+// ✅ 1) GET logged-in user info (email show করার জন্য)
+// GET /api/v1/frontend/me
+// =====================================================
+app.get("/api/v1/admin/me", requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select("name email phoneNumber role player_id status");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: { user },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+});
+
+// =====================================================
+// ✅ 2) Update email & password (currentPassword verify করে)
+// PUT /api/v1/frontend/me/credentials
+// body: { email?, currentPassword, newPassword? }
+// =====================================================
+app.put("/api/v1/admin/me/credentials", requireAuth, async (req, res) => {
+  try {
+    const { email, currentPassword, newPassword } = req.body;
+
+    if (!currentPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password is required",
+      });
+    }
+
+    if (!email && !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Nothing to update",
+      });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // ✅ current password verify
+    const match = await bcrypt.compare(currentPassword, user.password);
+    if (!match) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password incorrect",
+      });
+    }
+
+    // ✅ email update (if provided)
+    if (email) {
+      const normalizedEmail = String(email).trim().toLowerCase();
+
+      // same email can stay, but other user's email conflict check
+      const exists = await User.findOne({
+        email: normalizedEmail,
+        _id: { $ne: user._id },
+      });
+
+      if (exists) {
+        return res.status(409).json({
+          success: false,
+          message: "Email already in use",
+        });
+      }
+
+      user.email = normalizedEmail;
+    }
+
+    // ✅ password update (if provided)
+    if (newPassword) {
+      if (String(newPassword).length < 6) {
+        return res.status(400).json({
+          success: false,
+          message: "New password must be at least 6 characters",
+        });
+      }
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(newPassword, salt);
+    }
+
+    await user.save();
+
+    // ✅ optional: new token issue (recommended)
+    const newToken = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" },
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Credentials updated successfully",
+      data: {
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          player_id: user.player_id,
+          status: user.status,
+        },
+        token: newToken,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
   }
 });
 

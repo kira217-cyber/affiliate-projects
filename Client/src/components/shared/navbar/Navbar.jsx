@@ -61,7 +61,7 @@ const Navbar = ({ onMenuClick, isSidebarOpen }) => {
       "Account Record": "লাভ ও ক্ষতি",
       "Internal Message": "মেসেজ",
 
-      Deposit: "ম্যানুয়াল জমা",
+      Deposit: "ডিপোজিট",
       "Auto Deposit": "অটোমেটিক জমা",
       Withdrawal: "উত্তোলন",
       "Customer Service": "গ্রাহক সেবা",
@@ -127,7 +127,7 @@ const Navbar = ({ onMenuClick, isSidebarOpen }) => {
       id: "tab3",
       label: "Withdrawal",
       icon: <BiMoneyWithdraw />,
-      link: "/information#tab3",
+      link: "/information#tab4",
     },
     {
       id: "tab1",
@@ -150,7 +150,7 @@ const Navbar = ({ onMenuClick, isSidebarOpen }) => {
       id: "tab3",
       label: "Withdrawal",
       icon: <BiMoneyWithdraw size={20} />,
-      link: "/information#tab3",
+      link: "/information#tab4",
     },
   ];
 

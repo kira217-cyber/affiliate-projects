@@ -52,6 +52,7 @@ import SuperAffiliateBridge from "../pages/SuperAffiliateBridge";
 import MasterAffiliateBridge from "../pages/MasterAffiliateBridge";
 import OracleWalletAgent from "../pages/OracleWalletAgent";
 import OracleWalletAgentHistory from "../pages/OracleWalletAgentHistory";
+import Profile from "../pages/Profile";
 
 const AppRoutes = () => (
   <Routes>
@@ -137,6 +138,7 @@ const AppRoutes = () => (
     <Route path="/master-affiliate-bridge" element={<MasterAffiliateBridge />} />
     <Route path="/opay/wallet-agent" element={<OracleWalletAgent />} />
     <Route path="/wallet-agent/history" element={<OracleWalletAgentHistory />} />
+    <Route path="/profile" element={<Profile />} />
   </Routes>
 );
 
