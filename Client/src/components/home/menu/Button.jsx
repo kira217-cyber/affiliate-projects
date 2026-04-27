@@ -70,7 +70,7 @@ const MobileDepositWithdrawButton = () => {
         <FaPlusCircle /> {translate("Deposit")}
       </Btn>
 
-      <Btn onClick={() => handleClick("tab3")}>
+      <Btn onClick={() => handleClick("tab4")}>
         <FaMoneyBillTransfer /> {translate("Withdraw")}
       </Btn>
     </Container>
